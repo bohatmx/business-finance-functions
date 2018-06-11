@@ -1,5 +1,4 @@
-// Take the text parameter passed to this HTTP endpoint and insert it into the
-// Realtime Database under the path /messages/:pushId/original
+//receive data from https call and do something
 const functions = require('firebase-functions');
 exports.sendMessage = functions.https.onRequest((req, res) => {
     // Grab the text parameter.

@@ -1,5 +1,5 @@
 // ######################################################################
-// Triggered by user addedd to db. send message to topic 
+// Triggered by user addedd to firestore. send message to users topic 
 // ######################################################################
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
