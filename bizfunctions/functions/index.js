@@ -7,6 +7,8 @@ admin.initializeApp();
 
 const sendMessageModule = require('./modules/send-message');
 const userAddedModule = require('./modules/user-added');
+const userDeletedModule = require('./modules/user-deleted');
 
 exports.bf01 = userAddedModule
 exports.bf02 = sendMessageModule
+exports.bf03 = userDeletedModule
