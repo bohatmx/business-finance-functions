@@ -17,16 +17,8 @@ exports.govtInvoiceCreated = functions.firestore
                 json: JSON.stringify(invoice)
             }
         }
-        console.log('sending po data to topic: ' + topic)
-        return admin.messaging().sendToTopic(topic, payload).then(response => {
-            console.log('admin.messaging().sendToTopic: response: ' +
-                JSON.stringify(response))
-            const topic2 = `invoices${invoice.supplierDocumentRef}`
-            return admin.messaging().sendToTopic(topic2, payload).then(response => {
-                console.log('admin.messaging().sendToTopic: response: ' +
-                    JSON.stringify(response))
-            })
-
-        });
-
+        console.log('sending po data to topic: ' + topic+ ' ' + JSON.stringify(invoice))
+        admin.messaging().sendToTopic(topic, payload)
+        const topic2 = `invoices${invoice.supplierDocumentRef}`
+        return admin.messaging().sendToTopic(topic2, payload)
     });

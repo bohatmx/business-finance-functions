@@ -10,15 +10,6 @@ exports.userDeleted = functions.firestore
     .onDelete((snap, context) => {
 
         const user = snap.data();
-        console.log('userDeleted function, user: ' + user.firstName + ' ' + user.email)
-        admin.auth().deleteUser(user.uid)
-            .then(function () {
-                console.log("Successfully deleted user");
-                return 0
-            })
-            .catch(function (error) {
-                console.log("Error deleting user:", error);
-                return 9
-            });
-            return 0;
+        console.log('userDeleted deling auth entry, user: ' + user.firstName + ' ' + user.email)
+        return admin.auth().deleteUser(user.uid)
     });

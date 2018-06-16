@@ -17,16 +17,9 @@ exports.companyPurchaseOrderCreated = functions.firestore
                 json: JSON.stringify(po)
             }
         }
-        console.log('sending po data to topic: ' + topic)
-        return admin.messaging().sendToTopic(topic, payload).then(response => {
-            console.log('admin.messaging().sendToTopic: response: ' +
-                JSON.stringify(response))
-            const topic2 = `purchaseOrders${po.supplierDocumentRef}`
-            return admin.messaging().sendToTopic(topic2, payload).then(response => {
-                console.log('admin.messaging().sendToTopic: response: ' +
-                    JSON.stringify(response))
-            })
-
-        });
+        console.log('sending po data to topic: ' + topic+ ' ' + JSON.stringify(po))
+        admin.messaging().sendToTopic(topic, payload)
+        const topic2 = `purchaseOrders${po.supplierDocumentRef}`
+        return admin.messaging().sendToTopic(topic2, payload)
 
     });
