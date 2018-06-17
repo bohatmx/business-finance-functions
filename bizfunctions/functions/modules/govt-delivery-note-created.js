@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 //const firestore = admin.firestore();
 
 exports.govtDeliveryNoteCreated = functions.firestore
-    .document('suppliers/{docId}/deliveryNotes/{poDocId}')
+    .document('govtEntities/{docId}/deliveryNotes/{poDocId}')
     .onCreate((snap, context) => {
 
         const note = snap.data();
@@ -17,7 +17,7 @@ exports.govtDeliveryNoteCreated = functions.firestore
                 json: JSON.stringify(note)
             }
         }
-        console.log('sending po data to topic: ' + topic + ' ' + JSON.stringify(note))
+        console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(note))
         admin.messaging().sendToTopic(topic, payload)
         const topic2 = `deliveryNotes${note.supplierDocumentRef}`
         return admin.messaging().sendToTopic(topic2, payload)

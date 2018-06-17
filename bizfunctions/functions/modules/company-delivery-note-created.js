@@ -6,7 +6,7 @@ const admin = require('firebase-admin');
 //const firestore = admin.firestore();
 
 exports.companyDeliveryNoteCreated = functions.firestore
-    .document('suppliers/{docId}/deliveryNotes/{poDocId}')
+    .document('companies/{docId}/deliveryNotes/{poDocId}')
     .onCreate((snap, context) => {
 
         const note = snap.data();
