@@ -18,6 +18,7 @@ const govtInvoiceCreated = require('./modules/govt-invoice-created');
 const purchaseOrderCreated = require('./modules/purchase-order-created');
 const deliveryAcceptance = require('./modules/delivery-acceptance');
 const offerCreated = require('./modules/offer-created');
+const invoiceBidCreated = require('./modules/invoice-bid-created');
 
 
 exports.bf01 = userAddedModule
@@ -33,3 +34,5 @@ exports.bf08 = companyInvoiceCreated
 exports.bf09 = companyPOCreated
 exports.bf10 = deliveryAcceptance
 exports.bf11 = offerCreated
+exports.bf12 = invoiceBidCreated
+
