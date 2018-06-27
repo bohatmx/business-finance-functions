@@ -1,5 +1,5 @@
 {
-  "name": "functions",
+  "name": "bfn-functions",
   "scripts": {
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
