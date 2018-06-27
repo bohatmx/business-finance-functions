@@ -1,0 +1,1 @@
+{"version":3,"file":"hello.js","sourceRoot":"","sources":["../../src/modules/hello.ts"],"names":[],"mappings":";;AAAA,gDAAgD;AAEhD,mCAAmC;AACnC,wDAAwD;AAE3C,QAAA,UAAU,GAAG,SAAS,CAAC,KAAK,CAAC,SAAS,CAAC,CAAC,OAAO,EAAE,QAAQ,EAAE,EAAE;IACtE,OAAO,CAAC,GAAG,CAAC,sBAAsB,CAAC,CAAA;IACnC,QAAQ,CAAC,IAAI,CAAC,0CAA0C,CAAC,CAAC;AAC9D,CAAC,CAAC,CAAC"}

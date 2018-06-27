@@ -1,0 +1,25 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const admin = require("firebase-admin");
+const Hello = require("./modules/hello");
+const GovtInvoice = require("./modules/govt-invoice-created");
+const GovtDeliveryNote = require("./modules/govt-delivery-note-created");
+const WalletAdded = require("./modules/wallet-added");
+const InvoiceBid = require("./modules/invoice-bid-created");
+const Offer = require("./modules/offer-created");
+const UserAdded = require("./modules/user-added");
+const UserDeleted = require("./modules/user-deleted");
+const PurchaseOrder = require("./modules/purchase-order-created");
+const GovtDeliveryAcceptance = require("./modules/delivery-acceptance");
+admin.initializeApp();
+exports.hello = Hello.helloWorld;
+exports.walletAdded = WalletAdded.onWalletAdded;
+exports.govtDeliveryNote = GovtDeliveryNote.govtDeliveryNoteCreated;
+exports.govtDeliveryAcceptance = GovtDeliveryAcceptance.deliveryAcceptanceCreated;
+exports.govtInvoice = GovtInvoice.govtInvoiceCreated;
+exports.invoiceBid = InvoiceBid.invoiceBidCreated;
+exports.offer = Offer.offerCreated;
+exports.purchaseOrder = PurchaseOrder.purchaseOrderCreated;
+exports.userAdded = UserAdded.userCreated;
+exports.userDeleted = UserDeleted.userDeleted;
+//# sourceMappingURL=index.js.map
