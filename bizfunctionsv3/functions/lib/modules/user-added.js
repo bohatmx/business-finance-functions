@@ -17,7 +17,7 @@ exports.userCreated = functions.firestore
             messageType: 'USER'
         }
     };
-    let topic = 'users';
+    const topic = 'users';
     return admin.messaging().sendToTopic(topic, payload);
 });
 //# sourceMappingURL=user-added.js.map

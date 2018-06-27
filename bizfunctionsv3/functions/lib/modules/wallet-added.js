@@ -17,6 +17,8 @@ exports.onWalletAdded = functions.firestore
     .document('wallets/{docId}')
     .onCreate((snap, context) => __awaiter(this, void 0, void 0, function* () {
     const wallet = snap.data();
+    console.log('Wallet created on Firestore, triggered: ' + JSON.stringify(wallet));
+    console.log('Wallet documentId: ' + snap.id);
     try {
         console.log(JSON.stringify(wallet));
         console.log('sourceSeed: ' + wallet.sourceSeed);
@@ -61,14 +63,14 @@ exports.onWalletAdded = functions.firestore
         const transactionResult = yield server.submitTransaction(transaction);
         console.log(JSON.stringify(transactionResult, null, 2));
         console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network');
-        console.log('######## starting to rock with FCM ...');
         wallet.success = true;
         yield admin.firestore().collection('wallets').doc(snap.id).update(wallet);
+        console.log('wallet updated on Firestore with success = true');
         return admin.messaging().send(payload);
     }
     catch (error) {
         console.error(error);
-        console.log('Wallet creation failed');
+        console.log('Wallet creation failed: ' + error);
         const errPayload = {
             data: {
                 'messageType': 'WALLET_ERROR',
@@ -78,6 +80,7 @@ exports.onWalletAdded = functions.firestore
         };
         wallet.success = false;
         yield admin.firestore().collection('wallets').doc(snap.id).update(wallet);
+        console.log('Wallet updated on Firestore with success = false');
         return admin.messaging().send(errPayload);
     }
 }));

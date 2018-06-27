@@ -2,11 +2,15 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 const StellarSdk = require('stellar-sdk');
 const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+
 const DEBUG_STARTING_BALANCE = "500", STARTING_BALANCE = "3"
+
 export const onWalletAdded = functions.firestore
     .document('wallets/{docId}')
     .onCreate(async (snap, context) => {
         const wallet = snap.data()
+        console.log('Wallet created on Firestore, triggered: ' + JSON.stringify(wallet))
+        console.log('Wallet documentId: ' + snap.id);
         try {
             console.log(JSON.stringify(wallet))
             console.log('sourceSeed: ' + wallet.sourceSeed)
@@ -54,14 +58,14 @@ export const onWalletAdded = functions.firestore
             const transactionResult = await server.submitTransaction(transaction)
             console.log(JSON.stringify(transactionResult, null, 2));
             console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network')
-            console.log('######## starting to rock with FCM ...')
             wallet.success = true
             await admin.firestore().collection('wallets').doc(snap.id).update(wallet)
+            console.log('wallet updated on Firestore with success = true')
             return admin.messaging().send(payload);
 
         } catch (error) {
             console.error(error)
-            console.log('Wallet creation failed');
+            console.log('Wallet creation failed: ' + error);
             const errPayload = {
                 data: {
                     'messageType': 'WALLET_ERROR',
@@ -71,6 +75,7 @@ export const onWalletAdded = functions.firestore
             }
             wallet.success = false
             await admin.firestore().collection('wallets').doc(snap.id).update(wallet)
+            console.log('Wallet updated on Firestore with success = false')
             return admin.messaging().send(errPayload)
         }
 
