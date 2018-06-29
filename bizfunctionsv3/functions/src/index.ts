@@ -9,6 +9,8 @@ import * as UserAdded from './modules/user-added'
 import * as UserDeleted from './modules/user-deleted'
 import * as PurchaseOrder from './modules/purchase-order-created'
 import * as GovtDeliveryAcceptance from './modules/delivery-acceptance'
+import * as Decryptor from './modules/decryptor'
+import * as Encryptor from './modules/encryptor'
 
 admin.initializeApp();
 
@@ -22,4 +24,6 @@ export const offer = Offer.offerCreated
 export const purchaseOrder = PurchaseOrder.purchaseOrderCreated
 export const userAdded = UserAdded.userCreated
 export const userDeleted = UserDeleted.userDeleted
+export const decryptor = Decryptor.decrypt
+export const encryptor = Encryptor.encrypt
 

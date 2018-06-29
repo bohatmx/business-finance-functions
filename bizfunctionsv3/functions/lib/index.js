@@ -11,6 +11,8 @@ const UserAdded = require("./modules/user-added");
 const UserDeleted = require("./modules/user-deleted");
 const PurchaseOrder = require("./modules/purchase-order-created");
 const GovtDeliveryAcceptance = require("./modules/delivery-acceptance");
+const Decryptor = require("./modules/decryptor");
+const Encryptor = require("./modules/encryptor");
 admin.initializeApp();
 exports.hello = Hello.helloWorld;
 exports.walletAdded = WalletAdded.onWalletAdded;
@@ -22,4 +24,6 @@ exports.offer = Offer.offerCreated;
 exports.purchaseOrder = PurchaseOrder.purchaseOrderCreated;
 exports.userAdded = UserAdded.userCreated;
 exports.userDeleted = UserDeleted.userDeleted;
+exports.decryptor = Decryptor.decrypt;
+exports.encryptor = Encryptor.encrypt;
 //# sourceMappingURL=index.js.map
