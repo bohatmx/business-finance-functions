@@ -13,7 +13,7 @@ export const decrypt = functions.https.onRequest((request, response) => {
     console.log('################### decrypt account secret for: ' + accountID)
     try {
         const key = CryptoJS.enc.Utf8.parse(accountID);
-        const iv = CryptoJS.enc.Utf8.parse('7061737323313233');
+        const iv = CryptoJS.enc.Utf8.parse('7061737323313299');
 
         const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
             keySize: 128 / 8,

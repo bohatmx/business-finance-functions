@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
-import * as CryptoJS from 'crypto-js';
+import * as MyCrypto from './encryptor-util';
 
-export const encrypt = functions.https.onRequest((request, response) => {
+export const encrypt =  functions.https.onRequest(async (request, response) => {
 
     if (!request.body) {
         response.sendStatus(500)
@@ -10,21 +10,10 @@ export const encrypt = functions.https.onRequest((request, response) => {
     const accountID = request.body.accountId
     const secret = request.body.secret
     
+    
     console.log('################### encrypt account secret for: ' + accountID)
     try {
-        const key = CryptoJS.enc.Utf8.parse(accountID);
-        const iv = CryptoJS.enc.Utf8.parse('7061737323313233');
-
-        const encrypted = CryptoJS.AES.encrypt(
-            CryptoJS.enc.Utf8.parse(secret), key,
-            {
-                keySize: 128 / 8,
-                iv: iv,
-                mode: CryptoJS.mode.CBC,
-                padding: CryptoJS.pad.Pkcs7
-            });
-        console.log('PLAIN TEXT SECRET : ' + secret);
-        console.log('ENCRYPTED SECRET : ' + encrypted);
+        const encrypted = await MyCrypto.encrypt(accountID,secret);
         response.send('' + encrypted)
 
     } catch (e) {

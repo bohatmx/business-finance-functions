@@ -1,84 +1,67 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as CryptoJS from 'crypto-js';
+import * as MyCrypto from './encryptor-util';
 const StellarSdk = require('stellar-sdk');
 
 
-const DEBUG_STARTING_BALANCE = "100", STARTING_BALANCE = "3"
+const STARTING_BALANCE = "3"
 
 export const onWalletAdded = functions.firestore
     .document('wallets/{docId}')
     .onCreate(async (snap, context) => {
-        
+
         const wallet = snap.data()
-        
-        console.log('Wallet created on Firestore, triggered: ' + JSON.stringify(wallet))
+        console.log('Triggered by Firestore, creating wallet on Stellar: ' + JSON.stringify(wallet))
         let server;
+        console.log('####### hooking up with Stellar to generate new keys');
         const keyPair = StellarSdk.Keypair.random()
         const secret = keyPair.secret();
         const accountID = keyPair.publicKey();
-        console.log("new public key: " + accountID)
-        console.log('new secret: ' + secret)
-        
-        try {
-            console.log('sourceSeed: ' + wallet.sourceSeed)
-            const sourceKeypair = StellarSdk.Keypair.fromSecret(wallet.sourceSeed);
-            const sourcePublicKey = sourceKeypair.publicKey();
-            console.log('sourcePublicKey: ' + sourcePublicKey)
+        console.log("new wallet public key: " + accountID)
+        console.log('new wallet secret: ' + secret)
+        if (wallet.debug) {
+            return getTestXLM()
+        } else {
+            try {
+                console.log('### sourceSeed: ' + wallet.sourceSeed)
+                const sourceKeypair = StellarSdk.Keypair.fromSecret(wallet.sourceSeed);
+                const sourcePublicKey = sourceKeypair.publicKey();
+                console.log('### sourcePublicKey: ' + sourcePublicKey)
 
-
-            if (wallet.debug) {
-                server = new StellarSdk.Server('https://horizon-testnet.stellar.org/');
-                StellarSdk.Network.useTestNetwork();
-
-            } else {
                 server = new StellarSdk.Server('https://horizon.stellar.org/');
                 StellarSdk.Network.usePublicNetwork();
-            }
-            wallet.stellarPublicKey = accountID
-            wallet.secret = secret; //Encryption to be added
-            wallet.encryptedSecret = encrypt()
 
-            const account = await server.loadAccount(sourcePublicKey);
-            let startingBalance = STARTING_BALANCE
-            if (wallet.debug) {
-                startingBalance = DEBUG_STARTING_BALANCE
-                if (wallet.oneConnect) {
-                    startingBalance = '1000'
+                wallet.stellarPublicKey = accountID
+                const encryptResult = await MyCrypto.encrypt(accountID, secret);
+                if (encryptResult !== 'encryption failed') {
+                    wallet.encryptedSecret = encryptResult
                 }
-            }
-            const transaction = new StellarSdk.TransactionBuilder(account)
-                .addOperation(StellarSdk.Operation.createAccount({
-                    destination: accountID,
-                    startingBalance: startingBalance
-                }))
-                .build();
 
-            console.log('about to sign and submit stellar transaction ...' + wallet.name)
-            transaction.sign(sourceKeypair);
-            const transactionResult = await server.submitTransaction(transaction)
-            console.log(JSON.stringify(transactionResult, null, 2));
-            console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network')
-            wallet.success = true
-           
-            await admin.firestore().collection('wallets').doc(snap.id).update(wallet)
-            console.log('wallet updated on Firestore with success = true, sending message to device')
-            if (wallet.fcmToken) {
-                const payload = {
-                    data: {
-                        'messageType': 'WALLET',
-                        'json': JSON.stringify(wallet)
-                    }
-                }
-                return admin.messaging().sendToDevice([wallet.fcmToken], payload);
-            } else {
-                return 0;
-            }
+                const account = await server.loadAccount(sourcePublicKey);
+                const transaction = new StellarSdk.TransactionBuilder(account)
+                    .addOperation(StellarSdk.Operation.createAccount({
+                        destination: accountID,
+                        startingBalance: STARTING_BALANCE
+                    }))
+                    .build();
 
-        } catch (error) {
-            //something went boom!
-            console.error(error)
-            let failed = {
+                console.log(')))) about to sign and submit stellar transaction ...' + wallet.name)
+                transaction.sign(sourceKeypair);
+                const transactionResult = await server.submitTransaction(transaction)
+                console.log(JSON.stringify(transactionResult, null, 2));
+                console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network')
+                wallet.success = true
+                return sendToDevice()
+
+            } catch (error) {
+                //something went boom!
+                console.error(error)
+                return sendFailed()
+            }
+        }
+
+        async function sendFailed() {
+            const failed = {
                 'date': new Date(),
                 'walletDocumentId': snap.id,
                 'publicKey': accountID,
@@ -86,10 +69,7 @@ export const onWalletAdded = functions.firestore
                 'name': wallet.name
             }
             await admin.firestore().collection('walletsFailed').add(failed)
-
             wallet.success = false
-            await admin.firestore().collection('wallets').doc(snap.id).update(wallet)
-            console.log('Wallet updated on Firestore with success = false, sending message to device; failed record added')
             const errPayload = {
                 data: {
                     'messageType': 'WALLET_ERROR',
@@ -98,43 +78,47 @@ export const onWalletAdded = functions.firestore
             }
             console.log('sending message to failedWallets topic')
             await admin.messaging().sendToTopic('failedWallets', errPayload)
+            return sendToDevice()
+        }
+        async function sendToDevice() {
             if (wallet.fcmToken) {
-                console.log('sending message to device: failed Wallet')
-                return admin.messaging().sendToDevice([wallet.fcmToken], errPayload)
+                wallet.documentReference = snap.id
+                const payload = {
+                    data: {
+                        'messageType': 'WALLET',
+                        'json': JSON.stringify(wallet)
+                    }
+                }
+                console.log('sending wallet message to device: ' + JSON.stringify(wallet))
+                return admin.messaging().sendToDevice([wallet.fcmToken], payload);
             } else {
+                console.log('Wallet has no FCM token. No message sent. DEBUGGING')
                 return 0;
             }
         }
+        async function getTestXLM() {
+            console.log('getTestXLM - creating test account and begging for dev XLM ########')
+            const request = require('request')
+            request.get({
+                url: 'https://friendbot.stellar.org',
+                qs: { addr: accountID },
+                json: true
+            }, async function (error, response, body) {
+                console.log('friendbot: response: ' + JSON.stringify(response))
+                if (response.statusCode === 200) {
+                    console.log('### MAJOR SUCCESS!!! ### test wallet has 10,000 XLM on Stellar. ####')
+                    wallet.encryptedSecret = await MyCrypto.encrypt(accountID, secret);
+                    wallet.stellarPublicKey = accountID
+                    wallet.success = true
+                    return sendToDevice()
 
-        function encrypt() {
-            console.log('################### encrypt function: ' + wallet.name)
-            try {
-                const key = CryptoJS.enc.Utf8.parse(accountID);
-                const iv = CryptoJS.enc.Utf8.parse('7061737323313233');
-                const encrypted = CryptoJS.AES.encrypt(
-                    CryptoJS.enc.Utf8.parse(secret), key,
-                    {
-                        keySize: 128 / 8,
-                        iv: iv,
-                        mode: CryptoJS.mode.CBC,
-                        padding: CryptoJS.pad.Pkcs7
-                    });
-    
-                const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
-                    keySize: 128 / 8,
-                    iv: iv,
-                    mode: CryptoJS.mode.CBC,
-                    padding: CryptoJS.pad.Pkcs7
-                });
-    
-                console.log('ENCRYPTED SECRET : ' + encrypted);
-                console.log('DECRYPTED SECRET : ' + decrypted.toString(CryptoJS.enc.Utf8));
-                return '' + encrypted
-            } catch (e) {
-                console.error(e)
-                return 'encryption failed';
-            }
+                } else {
+                    wallet.success = false
+                    return sendFailed()
+                }
+            });
         }
+       
     });
 
-    
+
