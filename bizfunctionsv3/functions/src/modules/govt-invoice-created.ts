@@ -10,14 +10,21 @@ export const govtInvoiceCreated = functions.firestore
 
         const invoice = snap.data();
         const topic = `invoices${invoice.govtDocumentRef}`
+        invoice.amount = invoice.amount * 1.00
+        invoice.totalAmount = invoice.totalAmount * 1.00
         const payload = {
             data: {
-                messageType: 'GOVT_INVOICE',
+                messageType: 'INVOICE',
                 json: JSON.stringify(invoice)
+            },
+            notification: {
+                title: 'Incoming Invoice',
+                body: 'Invoice ' + invoice.invoiceNumber + ' total Amount: ' + invoice.totalAmount + ' from: ' + invoice.supplierName
             }
         }
         console.log('sending invoice data to topic: ' + topic + ' ' + JSON.stringify(invoice))
         admin.messaging().sendToTopic(topic, payload)
         const topic2 = `invoices${invoice.supplierDocumentRef}`
+        console.log('sending invoice data to topic: ' + topic2) 
         return admin.messaging().sendToTopic(topic2, payload)
     });

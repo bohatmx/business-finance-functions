@@ -26,7 +26,7 @@ exports.onWalletAdded = functions.firestore
     console.log("new wallet public key: " + accountID);
     console.log('new wallet secret: ' + secret);
     if (wallet.debug) {
-        return getTestXLM();
+        return prepareDebugAccount();
     }
     else {
         try {
@@ -51,6 +51,7 @@ exports.onWalletAdded = functions.firestore
             console.log(')))) about to sign and submit stellar transaction ...' + wallet.name);
             transaction.sign(sourceKeypair);
             const transactionResult = yield server.submitTransaction(transaction);
+            console.log('transactionResult: ' + JSON.stringify(StellarSdk.xdr.TransactionResult.fromXDR(transactionResult.result_xdr, 'base64')));
             console.log(JSON.stringify(transactionResult, null, 2));
             console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network');
             wallet.success = true;
@@ -103,9 +104,9 @@ exports.onWalletAdded = functions.firestore
             }
         });
     }
-    function getTestXLM() {
+    function prepareDebugAccount() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('getTestXLM - creating test account and begging for dev XLM ########');
+            console.log('prepareDebugAccount: - creating test account and begging for dev XLM ########');
             const request = require('request');
             request.get({
                 url: 'https://friendbot.stellar.org',
