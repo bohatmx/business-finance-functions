@@ -14,6 +14,10 @@ export const deliveryAcceptanceCreated = functions.firestore
             data: {
                 messageType: 'DELIVERY_ACCEPTANCE',
                 json: JSON.stringify(acceptance)
+            },
+            notification: {
+                title: 'Delivery Acceptance',
+                body: 'Delivery Acceptance from ' + acceptance.customerName + ' PO: ' + acceptance.purchaseOrderNumber
             }
         }
         console.log('sending delivery acceptance data to topic: ' + topic + ' ' + JSON.stringify(acceptance))

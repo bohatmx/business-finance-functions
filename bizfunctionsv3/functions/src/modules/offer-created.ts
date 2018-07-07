@@ -14,6 +14,10 @@ export const offerCreated = functions.firestore
             data: {
                 messageType: 'OFFER',
                 json: JSON.stringify(offer)
+            },
+            notification: {
+                title: 'Invoice Offer',
+                body: 'Invoice Offer from ' + offer.supplierName + ' amount: ' + offer.offerAmount
             }
         }
         console.log('sending offer data to topic: ' + topic + ' ' + JSON.stringify(offer))

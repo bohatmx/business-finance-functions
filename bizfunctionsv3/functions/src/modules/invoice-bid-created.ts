@@ -14,6 +14,10 @@ export const invoiceBidCreated = functions.firestore
             data: {
                 messageType: 'INVOICE_BID',
                 json: JSON.stringify(bid)
+            },
+            notification: {
+                title: 'Invoice Bid',
+                body: 'Invoice Bid from ' + bid.investorName + ' amount: ' + bid.amount
             }
         }
         if (bid.supplierFCMToken) {

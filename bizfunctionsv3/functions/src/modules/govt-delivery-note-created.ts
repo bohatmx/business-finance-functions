@@ -14,6 +14,10 @@ export const govtDeliveryNoteCreated = functions.firestore
             data: {
                 messageType: 'DELIVERY_NOTE',
                 json: JSON.stringify(note)
+            },
+            notification: {
+                title: 'Delivery Note',
+                body: 'Delivery Notefrom ' + note.supplierName + ' date: ' + note.date
             }
         }
         console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(note))

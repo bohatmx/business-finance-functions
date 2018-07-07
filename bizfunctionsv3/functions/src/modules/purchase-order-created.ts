@@ -12,6 +12,10 @@ export const purchaseOrderCreated = functions.firestore
             data: {
                 messageType: 'PURCHASE_ORDER',
                 json: JSON.stringify(po)
+            },
+            notification: {
+                title: 'Purchase Order',
+                body: 'Purchase Order from ' + po.purchaserName + ' amount: ' + po.amount
             }
         }
         
