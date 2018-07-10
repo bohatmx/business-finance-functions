@@ -5,11 +5,11 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 export const invoiceBidCreated = functions.firestore
-    .document('invoiceBids/{docId}')
+    .document('invoiceOffers/{ioId}/invoiceBids/{docId}')
     .onCreate((snap, context) => {
 
         const bid = snap.data();
-        const topic = `invoiceBids`
+        const topic = `invoiceBids` + bid.supplierId
         const payload = {
             data: {
                 messageType: 'INVOICE_BID',

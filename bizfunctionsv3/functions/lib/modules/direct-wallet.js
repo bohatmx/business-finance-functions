@@ -38,7 +38,8 @@ exports.directWallet = functions.https.onRequest((request, response) => __awaite
         'encryptedSecret': encrypted,
         'date': dateRegistered,
         'success': false,
-        'dateRegistered': dateRegistered
+        'dateRegistered': dateRegistered,
+        'secret': secret
     };
     if (debug) {
         return prepareDebugWallet();

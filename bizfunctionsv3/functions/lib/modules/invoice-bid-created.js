@@ -6,14 +6,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 exports.invoiceBidCreated = functions.firestore
-    .document('invoiceBids/{docId}')
+    .document('invoiceOffers/{ioId}/invoiceBids/{docId}')
     .onCreate((snap, context) => {
     const bid = snap.data();
-    const topic = `invoiceBids`;
+    const topic = `invoiceBids` + bid.supplierId;
     const payload = {
         data: {
             messageType: 'INVOICE_BID',
             json: JSON.stringify(bid)
+        },
+        notification: {
+            title: 'Invoice Bid',
+            body: 'Invoice Bid from ' + bid.investorName + ' amount: ' + bid.amount
         }
     };
     if (bid.supplierFCMToken) {

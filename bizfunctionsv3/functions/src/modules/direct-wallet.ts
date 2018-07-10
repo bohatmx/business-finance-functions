@@ -33,7 +33,8 @@ export const directWallet = functions.https.onRequest(async (request, response) 
         'encryptedSecret': encrypted,
         'date': dateRegistered,
         'success': false,
-        'dateRegistered': dateRegistered
+        'dateRegistered': dateRegistered,
+        'secret': secret
     }
 
     if (debug) {
