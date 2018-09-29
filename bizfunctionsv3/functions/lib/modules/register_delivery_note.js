@@ -15,19 +15,17 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const axios = require('axios');
-exports.addData = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
+const uuid = require('uuid/v1');
+exports.registerDeliveryNote = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
         console.log('ERROR - request has no body');
-        return response.sendStatus(500);
+        return response.sendStatus(400);
     }
     console.log(`##### Incoming debug ${request.body.debug}`);
-    console.log(`##### Incoming collectionName ${request.body.collectionName}`);
-    console.log(`##### Incoming apiSuffix ${request.body.apiSuffix}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
-    const collectionName = request.body.collectionName;
-    const apiSuffix = request.body.apiSuffix;
     const data = request.body.data;
+    const apiSuffix = 'RegisterDeliveryNote';
     const ref = yield writeToBFN();
     if (ref) {
         response.status(200).send(ref.path);
@@ -46,7 +44,8 @@ exports.addData = functions.https.onRequest((request, response) => __awaiter(thi
             else {
                 url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
             }
-            console.log('####### --- writing to BFN: ---> ' + url);
+            console.log('####### --- writing Del Note to BFN: ---> ' + url);
+            data['deliveryNoteId'] = uuid();
             // Send a POST request to BFN
             try {
                 const mresponse = yield axios({
@@ -74,18 +73,68 @@ exports.addData = functions.https.onRequest((request, response) => __awaiter(thi
     }
     function writeToFirestore(mdata) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('################### writeToFirestore ###################### data:\n '
+            console.log('################### writeToFirestore, PO data from BFN:\n '
                 + JSON.stringify(mdata));
             // Add a new data to Firestore collection 
             try {
-                const reference = yield admin.firestore().collection(collectionName).add(mdata)
-                    .catch(function (error) {
-                    console.log("Error writing Firestore document ");
-                    console.log(error);
-                    return null;
-                });
-                console.log(`********** Data successfully written to Firestore! ${reference.path}`);
-                return reference;
+                let mdocID;
+                if (!mdata.govtDocumentRef) {
+                    const key = mdata.govtEntity.split('#')[1];
+                    const snapshot = yield admin.firestore()
+                        .collection('govtEntities').where('participantId', '==', key)
+                        .get().catch(function (error) {
+                        console.log("Error getting Firestore document ");
+                        console.log(error);
+                        return null;
+                    });
+                    snapshot.forEach(doc => {
+                        mdocID = doc.id;
+                    });
+                }
+                else {
+                    mdocID = mdata.govtDocumentRef;
+                }
+                let ref1;
+                if (mdocID) {
+                    ref1 = yield admin.firestore()
+                        .collection('govtEntities').doc(mdata.govtDocumentRef)
+                        .collection('deliveryNotes').add(mdata)
+                        .catch(function (error) {
+                        console.log("Error getting Firestore document ");
+                        console.log(error);
+                        return null;
+                    });
+                    console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
+                }
+                let docID;
+                if (!mdata.supplierDocumentRef) {
+                    const key = mdata.supplier.split('#')[1];
+                    const snapshot = yield admin.firestore()
+                        .collection('suppliers').where('participantId', '==', key)
+                        .get().catch(function (error) {
+                        console.log("Error writing Firestore document ");
+                        console.log(error);
+                        return null;
+                    });
+                    snapshot.forEach(doc => {
+                        docID = doc.id;
+                    });
+                }
+                else {
+                    docID = mdata.supplierDocumentRef;
+                }
+                if (docID) {
+                    const ref2 = yield admin.firestore()
+                        .collection('suppliers').doc(docID)
+                        .collection('deliveryNotes').add(mdata)
+                        .catch(function (error) {
+                        console.log("Error writing Firestore document ");
+                        console.log(error);
+                        return null;
+                    });
+                    console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
+                }
+                return ref1;
             }
             catch (e) {
                 console.log('##### ERROR, probably JSON data format related');
@@ -95,4 +144,4 @@ exports.addData = functions.https.onRequest((request, response) => __awaiter(thi
         });
     }
 }));
-//# sourceMappingURL=add-data.js.map
+//# sourceMappingURL=register_delivery_note.js.map

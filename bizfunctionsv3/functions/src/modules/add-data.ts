@@ -5,9 +5,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
-import * as requestor from 'request';
-
-import * as Axios from 'axios';
 const axios = require('axios');
 
 export const addData = functions.https.onRequest(async (request, response) => {
@@ -27,7 +24,7 @@ export const addData = functions.https.onRequest(async (request, response) => {
 
     const ref = await writeToBFN()
     if (ref) {
-        response.send(ref)
+        response.status(200).send(ref.path);
     } else {
         response.sendStatus(400)
     }
@@ -81,7 +78,7 @@ export const addData = functions.https.onRequest(async (request, response) => {
                     console.log(error)
                     return null
                 });
-            console.log(`********** Customer successfully written to Firestore! ${reference.path}`)
+            console.log(`********** Data successfully written to Firestore! ${reference.path}`)
             return reference
         } catch (e) {
             console.log('##### ERROR, probably JSON data format related')
