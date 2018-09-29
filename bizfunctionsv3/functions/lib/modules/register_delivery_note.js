@@ -1,6 +1,6 @@
 "use strict";
 // ######################################################################
-// Add customer to BFN and Firestore
+// Add DeliveryNote to BFN and Firestore
 // ######################################################################
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -14,7 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
-const axios = require('axios');
+const AxiosComms = require("./axios-comms");
 const uuid = require('uuid/v1');
 exports.registerDeliveryNote = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
@@ -48,14 +48,8 @@ exports.registerDeliveryNote = functions.https.onRequest((request, response) => 
             data['deliveryNoteId'] = uuid();
             // Send a POST request to BFN
             try {
-                const mresponse = yield axios({
-                    method: 'post',
-                    url: url,
-                    data: data
-                });
-                console.log(`####### BFN response mresponse: ##########: ${mresponse}`);
+                const mresponse = yield AxiosComms.AxiosComms.execute(url, data);
                 console.log(`####### BFN response status: ##########: ${mresponse.status}`);
-                console.log(`####### BFN response data: ##########: ${mresponse.data}`);
                 if (mresponse.status === 200) {
                     return writeToFirestore(mresponse.data);
                 }
@@ -97,7 +91,7 @@ exports.registerDeliveryNote = functions.https.onRequest((request, response) => 
                 let ref1;
                 if (mdocID) {
                     ref1 = yield admin.firestore()
-                        .collection('govtEntities').doc(mdata.govtDocumentRef)
+                        .collection('govtEntities').doc(mdocID)
                         .collection('deliveryNotes').add(mdata)
                         .catch(function (error) {
                         console.log("Error getting Firestore document ");

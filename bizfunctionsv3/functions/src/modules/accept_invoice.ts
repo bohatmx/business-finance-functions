@@ -1,5 +1,5 @@
 // ######################################################################
-// Add PurchaseOrder to BFN and Firestore
+// Accept Invoice to BFN and Firestore
 // ######################################################################
 
 import * as functions from 'firebase-functions';
@@ -8,7 +8,7 @@ import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
 const uuid = require('uuid/v1')
 
-export const registerPurchaseOrder = functions.https.onRequest(async (request, response) => {
+export const acceptInvoice = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
         return response.sendStatus(400)
@@ -19,7 +19,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
     const debug = request.body.debug
     const data = request.body.data
 
-    const apiSuffix = 'RegisterPurchaseOrder'
+    const apiSuffix = 'AcceptInvoice'
 
     const ref = await writeToBFN()
     if (ref) {
@@ -39,8 +39,8 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
 
-        console.log('####### --- writing PO to BFN: ---> ' + url)
-        data['purchaseOrderId'] = uuid()
+        console.log('####### --- writing Invoice Acceptance to BFN: ---> ' + url)
+        data['acceptanceId'] = uuid()
         // Send a POST request to BFN
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url,data)
@@ -85,8 +85,8 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             let ref1
             if (mdocID) {
                  ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdata.govtDocumentRef)
-                    .collection('purchaseOrders').add(mdata)
+                    .collection('govtEntities').doc(mdocID)
+                    .collection('invoiceAcceptances').add(mdata)
                     .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error)
@@ -115,7 +115,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             if (docID) {
                 const ref2 = await admin.firestore()
                     .collection('suppliers').doc(docID)
-                    .collection('purchaseOrders').add(mdata)
+                    .collection('invoiceAcceptances').add(mdata)
                     .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error)

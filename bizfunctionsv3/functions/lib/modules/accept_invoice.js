@@ -1,6 +1,6 @@
 "use strict";
 // ######################################################################
-// Add PurchaseOrder to BFN and Firestore
+// Accept Invoice to BFN and Firestore
 // ######################################################################
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -16,7 +16,7 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
 const uuid = require('uuid/v1');
-exports.registerPurchaseOrder = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
+exports.acceptInvoice = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
         console.log('ERROR - request has no body');
         return response.sendStatus(400);
@@ -25,7 +25,7 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
-    const apiSuffix = 'RegisterPurchaseOrder';
+    const apiSuffix = 'AcceptInvoice';
     const ref = yield writeToBFN();
     if (ref) {
         response.status(200).send(ref.path);
@@ -44,8 +44,8 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             else {
                 url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
             }
-            console.log('####### --- writing PO to BFN: ---> ' + url);
-            data['purchaseOrderId'] = uuid();
+            console.log('####### --- writing Invoice Acceptance to BFN: ---> ' + url);
+            data['acceptanceId'] = uuid();
             // Send a POST request to BFN
             try {
                 const mresponse = yield AxiosComms.AxiosComms.execute(url, data);
@@ -91,8 +91,8 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
                 let ref1;
                 if (mdocID) {
                     ref1 = yield admin.firestore()
-                        .collection('govtEntities').doc(mdata.govtDocumentRef)
-                        .collection('purchaseOrders').add(mdata)
+                        .collection('govtEntities').doc(mdocID)
+                        .collection('invoiceAcceptances').add(mdata)
                         .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error);
@@ -120,7 +120,7 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
                 if (docID) {
                     const ref2 = yield admin.firestore()
                         .collection('suppliers').doc(docID)
-                        .collection('purchaseOrders').add(mdata)
+                        .collection('invoiceAcceptances').add(mdata)
                         .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error);
@@ -138,4 +138,4 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
         });
     }
 }));
-//# sourceMappingURL=register_purchase_order.js.map
+//# sourceMappingURL=accept_invoice.js.map

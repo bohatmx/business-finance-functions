@@ -14,7 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
-const axios = require('axios');
+const AxiosComms = require("./axios-comms");
 exports.addData = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
         console.log('ERROR - request has no body');
@@ -49,14 +49,8 @@ exports.addData = functions.https.onRequest((request, response) => __awaiter(thi
             console.log('####### --- writing to BFN: ---> ' + url);
             // Send a POST request to BFN
             try {
-                const mresponse = yield axios({
-                    method: 'post',
-                    url: url,
-                    data: data
-                });
-                console.log(`####### BFN response mresponse: ##########: ${mresponse}`);
+                const mresponse = yield AxiosComms.AxiosComms.execute(url, data);
                 console.log(`####### BFN response status: ##########: ${mresponse.status}`);
-                console.log(`####### BFN response data: ##########: ${mresponse.data}`);
                 if (mresponse.status === 200) {
                     return writeToFirestore(mresponse.data);
                 }

@@ -5,7 +5,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
-const axios = require('axios');
+import * as AxiosComms from './axios-comms';
 const uuid = require('uuid/v1')
 
 export const registerInvoice = functions.https.onRequest(async (request, response) => {
@@ -43,14 +43,8 @@ export const registerInvoice = functions.https.onRequest(async (request, respons
         data['invoiceId'] = uuid()
         // Send a POST request to BFN
         try {
-            const mresponse = await axios({
-                method: 'post',
-                url: url,
-                data: data
-            })
-            console.log(`####### BFN response mresponse: ##########: ${mresponse}`)
+            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
             console.log(`####### BFN response status: ##########: ${mresponse.status}`)
-            console.log(`####### BFN response data: ##########: ${mresponse.data}`)
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data)
             } else {
@@ -91,7 +85,7 @@ export const registerInvoice = functions.https.onRequest(async (request, respons
             let ref1
             if (mdocID) {
                  ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdata.govtDocumentRef)
+                    .collection('govtEntities').doc(mdocID)
                     .collection('invoices').add(mdata)
                     .catch(function (error) {
                         console.log("Error getting Firestore document ");

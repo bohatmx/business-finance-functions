@@ -1,6 +1,6 @@
 "use strict";
 // ######################################################################
-// Add PurchaseOrder to BFN and Firestore
+// Add Invoice to BFN and Firestore
 // ######################################################################
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -16,7 +16,7 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
 const uuid = require('uuid/v1');
-exports.registerPurchaseOrder = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
+exports.makeInvoiceBid = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
         console.log('ERROR - request has no body');
         return response.sendStatus(400);
@@ -25,7 +25,7 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
-    const apiSuffix = 'RegisterPurchaseOrder';
+    const apiSuffix = 'MakeInvoiceBid';
     const ref = yield writeToBFN();
     if (ref) {
         response.status(200).send(ref.path);
@@ -44,12 +44,11 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             else {
                 url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
             }
-            console.log('####### --- writing PO to BFN: ---> ' + url);
-            data['purchaseOrderId'] = uuid();
+            console.log('####### --- writing InvoiceBid to BFN: ---> ' + url);
+            data['invoiceBidId'] = uuid();
             // Send a POST request to BFN
             try {
                 const mresponse = yield AxiosComms.AxiosComms.execute(url, data);
-                console.log(`####### BFN response status: ##########: ${mresponse.status}`);
                 if (mresponse.status === 200) {
                     return writeToFirestore(mresponse.data);
                 }
@@ -72,27 +71,22 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             // Add a new data to Firestore collection 
             try {
                 let mdocID;
-                if (!mdata.govtDocumentRef) {
-                    const key = mdata.govtEntity.split('#')[1];
-                    const snapshot = yield admin.firestore()
-                        .collection('govtEntities').where('participantId', '==', key)
-                        .get().catch(function (error) {
-                        console.log("Error getting Firestore document ");
-                        console.log(error);
-                        return null;
-                    });
-                    snapshot.forEach(doc => {
-                        mdocID = doc.id;
-                    });
-                }
-                else {
-                    mdocID = mdata.govtDocumentRef;
-                }
+                const key = mdata.investor.split('#')[1];
+                const snapshot = yield admin.firestore()
+                    .collection('investors').where('participantId', '==', key)
+                    .get().catch(function (error) {
+                    console.log("Error getting Firestore document ");
+                    console.log(error);
+                    return null;
+                });
+                snapshot.forEach(doc => {
+                    mdocID = doc.id;
+                });
                 let ref1;
                 if (mdocID) {
                     ref1 = yield admin.firestore()
-                        .collection('govtEntities').doc(mdata.govtDocumentRef)
-                        .collection('purchaseOrders').add(mdata)
+                        .collection('investors').doc(mdocID)
+                        .collection('invoiceBids').add(mdata)
                         .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error);
@@ -101,26 +95,21 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
                     console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
                 }
                 let docID;
-                if (!mdata.supplierDocumentRef) {
-                    const key = mdata.supplier.split('#')[1];
-                    const snapshot = yield admin.firestore()
-                        .collection('suppliers').where('participantId', '==', key)
-                        .get().catch(function (error) {
-                        console.log("Error writing Firestore document ");
-                        console.log(error);
-                        return null;
-                    });
-                    snapshot.forEach(doc => {
-                        docID = doc.id;
-                    });
-                }
-                else {
-                    docID = mdata.supplierDocumentRef;
-                }
+                const offerId = mdata.offer.split('#')[1];
+                const msnapshot = yield admin.firestore()
+                    .collection('invoiceOffers').where('offerId', '==', offerId)
+                    .get().catch(function (error) {
+                    console.log("Error writing Firestore document ");
+                    console.log(error);
+                    return null;
+                });
+                msnapshot.forEach(doc => {
+                    docID = doc.id;
+                });
                 if (docID) {
                     const ref2 = yield admin.firestore()
-                        .collection('suppliers').doc(docID)
-                        .collection('purchaseOrders').add(mdata)
+                        .collection('invoiceOffers').doc(docID)
+                        .collection('invoiceBids').add(mdata)
                         .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error);
@@ -128,6 +117,7 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
                     });
                     console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
                 }
+                yield checkTotalBids(docID, offerId);
                 return ref1;
             }
             catch (e) {
@@ -137,5 +127,52 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             }
         });
     }
+    function checkTotalBids(offerDocID, offerId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('############ checkTotalBids');
+            const msnapshot = yield admin.firestore()
+                .collection('invoiceOffers').doc(offerDocID)
+                .get().catch(function (error) {
+                console.log("Error writing Firestore document ");
+                console.log(error);
+                return null;
+            });
+            let total = 0.0;
+            msnapshot.forEach(doc => {
+                total += doc.data.reservePercent;
+            });
+            if (total >= 100.0) {
+                console.log('######## closing offer, reservePercent == 100%');
+                // Send a POST request to BFN
+                let url;
+                if (debug) {
+                    url = BFNConstants.Constants.DEBUG_FUNCTIONS_URL + 'closeOffer';
+                }
+                else {
+                    url = BFNConstants.Constants.RELEASE_FUNCTIONS_URL + 'closeOffer';
+                }
+                const map = new Map();
+                map['offerId'] = offerId;
+                try {
+                    const mresponse = yield AxiosComms.AxiosComms.execute(url, map);
+                    console.log(`####### Functions response status: ##########: ${mresponse.status}`);
+                    if (mresponse.status === 200) {
+                        console.log('************* Offer closed by function call from this function');
+                        return 'ok';
+                    }
+                    else {
+                        console.log('******** BFN ERROR ###########');
+                        return null;
+                    }
+                }
+                catch (error) {
+                    console.log('--------------- axios: BFN blockchain problem -----------------');
+                    console.log(error);
+                    return null;
+                }
+            }
+            return null;
+        });
+    }
 }));
-//# sourceMappingURL=register_purchase_order.js.map
+//# sourceMappingURL=make_invoice.bid.js.map

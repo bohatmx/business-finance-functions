@@ -1,5 +1,5 @@
 // ######################################################################
-// Add customer to BFN and Firestore
+// Add CloseOffer to BFN and update Firestore
 // ######################################################################
 
 import * as functions from 'firebase-functions';
@@ -7,20 +7,20 @@ import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
 
-export const addData = functions.https.onRequest(async (request, response) => {
+export const closeOffer = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
-        return response.sendStatus(500)
+        return response.sendStatus(400)
     }
     console.log(`##### Incoming debug ${request.body.debug}`)
-    console.log(`##### Incoming collectionName ${request.body.collectionName}`)
-    console.log(`##### Incoming apiSuffix ${request.body.apiSuffix}`)
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
 
     const debug = request.body.debug
-    const collectionName = request.body.collectionName
-    const apiSuffix = request.body.apiSuffix
-    const data = request.body.data
+    const offerId = request.body.offerId
+    const map = new Map();
+    map['offerId'] = offerId
+
+    const apiSuffix = 'CloseOffer'
 
     const ref = await writeToBFN()
     if (ref) {
@@ -39,15 +39,15 @@ export const addData = functions.https.onRequest(async (request, response) => {
         } else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
-       
-        console.log('####### --- writing to BFN: ---> ' + url)
+
+        console.log('####### --- writing CloseOffer to BFN: ---> ' + url)
 
         // Send a POST request to BFN
         try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
+            const mresponse = await AxiosComms.AxiosComms.execute(url,map)
             console.log(`####### BFN response status: ##########: ${mresponse.status}`)
             if (mresponse.status === 200) {
-                return writeToFirestore(mresponse.data)
+                return writeToFirestore()
             } else {
                 console.log('******** BFN ERROR ###########')
                 return null
@@ -61,19 +61,37 @@ export const addData = functions.https.onRequest(async (request, response) => {
 
     }
 
-    async function writeToFirestore(mdata) {
-        console.log('################### writeToFirestore ###################### data:\n '
-            + JSON.stringify(mdata))
+    async function writeToFirestore() {
+        console.log('################### writeToFirestore, close Offer :')
         // Add a new data to Firestore collection 
         try {
-            const reference = await admin.firestore().collection(collectionName).add(mdata)
-                .catch(function (error) {
-                    console.log("Error writing Firestore document ");
+            let mdocID
+            let mData
+            const snapshot = await admin.firestore()
+                .collection('invoiceOffers').where('offerId', '==', offerId)
+                .get().catch(function (error) {
+                    console.log("Error getting Firestore document ");
                     console.log(error)
                     return null
                 });
-            console.log(`********** Data successfully written to Firestore! ${reference.path}`)
-            return reference
+            snapshot.forEach(doc => {
+                mdocID = doc.id
+                mData = doc.data
+                mData.isOpen = false
+                mData.dateClosed = new Date().toISOString
+            });
+            let ref1
+            if (mdocID) {
+                 ref1 = await admin.firestore()
+                    .collection('invoiceOffers').doc(mdocID).set(mData)
+                    .catch(function (error) {
+                        console.log("Error getting Firestore document ");
+                        console.log(error)
+                        return null
+                    });
+                console.log(`********** Data successfully updated on Firestore!`)
+            }
+            return ref1
         } catch (e) {
             console.log('##### ERROR, probably JSON data format related')
             console.log(e)

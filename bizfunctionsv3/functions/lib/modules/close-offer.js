@@ -1,6 +1,6 @@
 "use strict";
 // ######################################################################
-// Add PurchaseOrder to BFN and Firestore
+// Add CloseOffer to BFN and update Firestore
 // ######################################################################
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -15,8 +15,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
-const uuid = require('uuid/v1');
-exports.registerPurchaseOrder = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
+exports.closeOffer = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {
         console.log('ERROR - request has no body');
         return response.sendStatus(400);
@@ -24,8 +23,10 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
-    const data = request.body.data;
-    const apiSuffix = 'RegisterPurchaseOrder';
+    const offerId = request.body.offerId;
+    const map = new Map();
+    map['offerId'] = offerId;
+    const apiSuffix = 'CloseOffer';
     const ref = yield writeToBFN();
     if (ref) {
         response.status(200).send(ref.path);
@@ -44,14 +45,13 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             else {
                 url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
             }
-            console.log('####### --- writing PO to BFN: ---> ' + url);
-            data['purchaseOrderId'] = uuid();
+            console.log('####### --- writing CloseOffer to BFN: ---> ' + url);
             // Send a POST request to BFN
             try {
-                const mresponse = yield AxiosComms.AxiosComms.execute(url, data);
+                const mresponse = yield AxiosComms.AxiosComms.execute(url, map);
                 console.log(`####### BFN response status: ##########: ${mresponse.status}`);
                 if (mresponse.status === 200) {
-                    return writeToFirestore(mresponse.data);
+                    return writeToFirestore();
                 }
                 else {
                     console.log('******** BFN ERROR ###########');
@@ -65,68 +65,36 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
             }
         });
     }
-    function writeToFirestore(mdata) {
+    function writeToFirestore() {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('################### writeToFirestore, PO data from BFN:\n '
-                + JSON.stringify(mdata));
+            console.log('################### writeToFirestore, close Offer :');
             // Add a new data to Firestore collection 
             try {
                 let mdocID;
-                if (!mdata.govtDocumentRef) {
-                    const key = mdata.govtEntity.split('#')[1];
-                    const snapshot = yield admin.firestore()
-                        .collection('govtEntities').where('participantId', '==', key)
-                        .get().catch(function (error) {
-                        console.log("Error getting Firestore document ");
-                        console.log(error);
-                        return null;
-                    });
-                    snapshot.forEach(doc => {
-                        mdocID = doc.id;
-                    });
-                }
-                else {
-                    mdocID = mdata.govtDocumentRef;
-                }
+                let mData;
+                const snapshot = yield admin.firestore()
+                    .collection('invoiceOffers').where('offerId', '==', offerId)
+                    .get().catch(function (error) {
+                    console.log("Error getting Firestore document ");
+                    console.log(error);
+                    return null;
+                });
+                snapshot.forEach(doc => {
+                    mdocID = doc.id;
+                    mData = doc.data;
+                    mData.isOpen = false;
+                    mData.dateClosed = new Date().toISOString;
+                });
                 let ref1;
                 if (mdocID) {
                     ref1 = yield admin.firestore()
-                        .collection('govtEntities').doc(mdata.govtDocumentRef)
-                        .collection('purchaseOrders').add(mdata)
+                        .collection('invoiceOffers').doc(mdocID).set(mData)
                         .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error);
                         return null;
                     });
-                    console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
-                }
-                let docID;
-                if (!mdata.supplierDocumentRef) {
-                    const key = mdata.supplier.split('#')[1];
-                    const snapshot = yield admin.firestore()
-                        .collection('suppliers').where('participantId', '==', key)
-                        .get().catch(function (error) {
-                        console.log("Error writing Firestore document ");
-                        console.log(error);
-                        return null;
-                    });
-                    snapshot.forEach(doc => {
-                        docID = doc.id;
-                    });
-                }
-                else {
-                    docID = mdata.supplierDocumentRef;
-                }
-                if (docID) {
-                    const ref2 = yield admin.firestore()
-                        .collection('suppliers').doc(docID)
-                        .collection('purchaseOrders').add(mdata)
-                        .catch(function (error) {
-                        console.log("Error writing Firestore document ");
-                        console.log(error);
-                        return null;
-                    });
-                    console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
+                    console.log(`********** Data successfully updated on Firestore!`);
                 }
                 return ref1;
             }
@@ -138,4 +106,4 @@ exports.registerPurchaseOrder = functions.https.onRequest((request, response) =>
         });
     }
 }));
-//# sourceMappingURL=register_purchase_order.js.map
+//# sourceMappingURL=close-offer.js.map

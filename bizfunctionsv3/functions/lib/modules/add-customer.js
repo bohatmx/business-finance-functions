@@ -53,9 +53,7 @@ exports.addCustomer = functions.https.onRequest((request, response) => __awaiter
                     url: url,
                     data: request.body
                 });
-                console.log(`####### BFN response mresponse: ##########: ${mresponse}`);
                 console.log(`####### BFN response status: ##########: ${mresponse.status}`);
-                console.log(`####### BFN response data: ##########: ${mresponse.data}`);
                 if (mresponse.status === 200) {
                     return writeToFirestore(mresponse.data);
                 }

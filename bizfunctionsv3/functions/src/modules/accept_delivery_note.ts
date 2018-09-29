@@ -1,5 +1,5 @@
 // ######################################################################
-// Add PurchaseOrder to BFN and Firestore
+// Add DeliveryNote to BFN and Firestore
 // ######################################################################
 
 import * as functions from 'firebase-functions';
@@ -8,7 +8,7 @@ import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
 const uuid = require('uuid/v1')
 
-export const registerPurchaseOrder = functions.https.onRequest(async (request, response) => {
+export const acceptDeliveryNote = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
         return response.sendStatus(400)
@@ -19,7 +19,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
     const debug = request.body.debug
     const data = request.body.data
 
-    const apiSuffix = 'RegisterPurchaseOrder'
+    const apiSuffix = 'AcceptDelivery'
 
     const ref = await writeToBFN()
     if (ref) {
@@ -39,12 +39,11 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
 
-        console.log('####### --- writing PO to BFN: ---> ' + url)
-        data['purchaseOrderId'] = uuid()
+        console.log('####### --- writing Delivery Acceptance to BFN: ---> ' + url)
+        data['acceptanceId'] = uuid()
         // Send a POST request to BFN
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url,data)
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`)
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data)
             } else {
@@ -61,7 +60,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
     }
 
     async function writeToFirestore(mdata) {
-        console.log('################### writeToFirestore, PO data from BFN:\n '
+        console.log('################### writeToFirestore, data from BFN:\n '
             + JSON.stringify(mdata))
         // Add a new data to Firestore collection 
         try {
@@ -85,8 +84,8 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             let ref1
             if (mdocID) {
                  ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdata.govtDocumentRef)
-                    .collection('purchaseOrders').add(mdata)
+                    .collection('govtEntities').doc(mdocID)
+                    .collection('deliveryAcceptances').add(mdata)
                     .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error)
@@ -115,7 +114,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
             if (docID) {
                 const ref2 = await admin.firestore()
                     .collection('suppliers').doc(docID)
-                    .collection('purchaseOrders').add(mdata)
+                    .collection('deliveryAcceptances').add(mdata)
                     .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error)
