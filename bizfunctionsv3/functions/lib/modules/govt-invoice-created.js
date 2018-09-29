@@ -22,10 +22,7 @@ exports.govtInvoiceCreated = functions.firestore
             body: 'Invoice ' + invoice.invoiceNumber + ' total Amount: ' + invoice.totalAmount + ' from: ' + invoice.supplierName
         }
     };
-    console.log('sending invoice data to topic: ' + topic + ' ' + JSON.stringify(invoice));
-    admin.messaging().sendToTopic(topic, payload);
-    const topic2 = `invoices${invoice.supplierDocumentRef}`;
-    console.log('sending invoice data to topic: ' + topic2);
-    return admin.messaging().sendToTopic(topic2, payload);
+    console.log('sending invoice data to government topic: ' + topic + ' ' + JSON.stringify(payload));
+    return admin.messaging().sendToTopic(topic, payload);
 });
 //# sourceMappingURL=govt-invoice-created.js.map

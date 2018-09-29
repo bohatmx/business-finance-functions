@@ -121,7 +121,7 @@ export const directWallet = functions.https.onRequest(async (request, response) 
                 body: msg
             }
         }
-        console.log('sending wallet message to topic: ' + JSON.stringify(wallet))
+        console.log('sending wallet message to topic: ' + JSON.stringify(payload))
         return admin.messaging().sendToTopic(topic, payload);
 
     }

@@ -1,5 +1,5 @@
 // ######################################################################
-// Triggered by user addedd to firestore. send message to users topic 
+// Triggered by deliveryAcceptance addedd to firestore. send message to topic 
 // ######################################################################
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
@@ -20,7 +20,7 @@ export const deliveryAcceptanceCreated = functions.firestore
                 body: 'Delivery Acceptance from ' + acceptance.customerName + ' PO: ' + acceptance.purchaseOrderNumber
             }
         }
-        console.log('sending delivery acceptance data to topic: ' + topic + ' ' + JSON.stringify(acceptance))
+        console.log('sending delivery acceptance data to supplier topic: ' + topic + ' ' + JSON.stringify(payload))
         return admin.messaging().sendToTopic(topic, payload)
        
 

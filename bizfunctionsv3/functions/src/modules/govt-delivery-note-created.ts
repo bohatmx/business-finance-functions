@@ -1,5 +1,5 @@
 // ######################################################################
-// Triggered by user addedd to firestore. send message to users topic 
+// Triggered by govtDeliveryNote addedd to firestore. send message to topic 
 // ######################################################################
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
@@ -20,7 +20,7 @@ export const govtDeliveryNoteCreated = functions.firestore
                 body: 'Delivery Notefrom ' + note.supplierName + ' date: ' + note.date
             }
         }
-        console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(note))
+        console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(payload))
         return admin.messaging().sendToTopic(topic, payload)
        
 

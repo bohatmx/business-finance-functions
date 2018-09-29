@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // ######################################################################
-// Triggered by user addedd to firestore. send message to users topic 
+// Triggered by govtDeliveryNote addedd to firestore. send message to topic 
 // ######################################################################
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -20,7 +20,7 @@ exports.govtDeliveryNoteCreated = functions.firestore
             body: 'Delivery Notefrom ' + note.supplierName + ' date: ' + note.date
         }
     };
-    console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(note));
+    console.log('sending delivery note data to topic: ' + topic + ' ' + JSON.stringify(payload));
     return admin.messaging().sendToTopic(topic, payload);
 });
 //# sourceMappingURL=govt-delivery-note-created.js.map
