@@ -43,7 +43,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
         data['invoiceBidId'] = uuid()
         // Send a POST request to BFN
         try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
+            const mresponse = await AxiosComms.AxiosComms.execute(url, data)
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data)
             } else {
@@ -126,46 +126,58 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
         }
     }
     async function checkTotalBids(offerDocID, offerId) {
-        console.log('############ checkTotalBids')
+        console.log(`############ checkTotalBids ......... offerDocID: ${offerDocID}`)
+       
         const msnapshot = await admin.firestore()
             .collection('invoiceOffers').doc(offerDocID)
+            .collection('invoiceBids')
             .get().catch(function (error) {
                 console.log("Error writing Firestore document ");
                 console.log(error)
                 return null
             });
-        let total = 0.0
-        msnapshot.forEach(doc => {
-            total += doc.data.reservePercent
-        });
-        if (total >= 100.0) {
-            console.log('######## closing offer, reservePercent == 100%')
-            // Send a POST request to BFN
-            let url
-            if (debug) {
-                url = BFNConstants.Constants.DEBUG_FUNCTIONS_URL + 'closeOffer'
-            } else {
-                url = BFNConstants.Constants.RELEASE_FUNCTIONS_URL + 'closeOffer'
-            }
-            const map = new Map()
-            map['offerId'] = offerId
-            try {
-                const mresponse = await AxiosComms.AxiosComms.execute(url,map)
-                console.log(`####### Functions response status: ##########: ${mresponse.status}`)
-                if (mresponse.status === 200) {
-                    console.log('************* Offer closed by function call from this function')
-                    return 'ok'
+        let total: number = 0.0
+        try {
+            msnapshot.forEach(doc => {
+                const reservePercent = doc.data()['reservePercent']
+                const mReserve = parseFloat(reservePercent)
+                total += mReserve
+            });
+            if (total >= 100.0) {
+                console.log(`######## closing offer, reservePercent == ${total} %`)
+                // Send a POST request to BFN
+                let url
+                if (debug) {
+                    url = BFNConstants.Constants.DEBUG_FUNCTIONS_URL + 'closeOffer'
                 } else {
-                    console.log('******** BFN ERROR ###########')
-                    return null
+                    url = BFNConstants.Constants.RELEASE_FUNCTIONS_URL + 'closeOffer'
+                }
+                const map = new Map()
+                map['offerId'] = offerId
+                map['debug'] = debug
+                try {
+                    const mresponse = await AxiosComms.AxiosComms.execute(url, map)
+                    console.log(`####### Functions response status: ##########: ${mresponse.status}`)
+                    if (mresponse.status === 200) {
+                        console.log('************* Offer closed by function call from this function')
+                        return 'ok'
+                    } else {
+                        console.log('******** BFN ERROR ###########')
+                        return null
+                    }
+
+                } catch (error) {
+                    console.log('--------------- axios: BFN blockchain problem -----------------')
+                    console.log(error);
+                    return null;
                 }
 
-            } catch (error) {
-                console.log('--------------- axios: BFN blockchain problem -----------------')
-                console.log(error);
-                return null;
+            } else {
+                console.log(`######## NOT closing offer, reservePercent == ${total} %`)
             }
-            
+        } catch (e) {
+            console.log('--------------- Firestore: Check Totals PROBLEM -----------------')
+            console.log(e);
         }
         return null
     }

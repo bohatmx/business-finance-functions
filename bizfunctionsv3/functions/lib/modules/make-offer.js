@@ -15,7 +15,6 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
-const axios = require('axios');
 const uuid = require('uuid/v1');
 exports.makeOffer = functions.https.onRequest((request, response) => __awaiter(this, void 0, void 0, function* () {
     if (!request.body) {

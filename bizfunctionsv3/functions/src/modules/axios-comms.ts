@@ -2,12 +2,12 @@ const axios = require('axios');
 export class AxiosComms {
 
     static async execute(url, data) {
+        console.log(`######### AxiosComms.execute starting; ${url} data: ${data}`)
         const mresponse = await axios({
             method: 'post',
             url: url,
             data: data
         }).catch((error) => {
-            // Error
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
@@ -21,12 +21,14 @@ export class AxiosComms {
                 console.log(error.request);
             } else {
                 // Something happened in setting up the request that triggered an Error
-                console.log('Error', error.message);
+                console.log('Something happened in setting up the request that triggered an Error: ', 
+                error.message);
             }
             console.log(error.config);
-            throw new Error('BFN has a problem. Deal with it!')
+            throw new Error('BFN has a problem. Dont just stand there ... Deal with it!')
                
         });
+
         console.log(`####### BFN response status: ##########: ${mresponse.status}`)  
         return mresponse
     }

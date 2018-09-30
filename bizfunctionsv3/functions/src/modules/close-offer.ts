@@ -7,6 +7,7 @@ import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
 
+//curl --header "Content-Type: application/json"   --request POST   --data '{"offerId":"60bb1a50-c407-11e8-8c87-91c28e73e521", "debug": "true"}'   https://bfnrestv3.eu-gb.mybluemix.net/api/CloseOffer
 export const closeOffer = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
@@ -40,21 +41,18 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
 
-        console.log('####### --- writing CloseOffer to BFN: ---> ' + url)
-
-        // Send a POST request to BFN
+        console.log(`####### --- executing CloseOffer on BFN Blockchain: --- ####### ${url}`)
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url,map)
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`)
             if (mresponse.status === 200) {
                 return writeToFirestore()
             } else {
-                console.log('******** BFN ERROR ###########')
+                console.log(`******** BFN ERROR ########### mresponse.status: ${mresponse.status}`)
                 return null
             }
 
         } catch (error) {
-            console.log('--------------- axios: BFN blockchain problem -----------------')
+            console.log('--------------- axios: BFN blockchain encountered a problem -----------------')
             console.log(error);
             return null;
         }
@@ -62,8 +60,8 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
     }
 
     async function writeToFirestore() {
-        console.log('################### writeToFirestore, close Offer :')
-        // Add a new data to Firestore collection 
+        console.log(`################### writeToFirestore, close Offer :${offerId}`)
+        
         try {
             let mdocID
             let mData
@@ -74,26 +72,30 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
                     console.log(error)
                     return null
                 });
+
             snapshot.forEach(doc => {
                 mdocID = doc.id
-                mData = doc.data
+                mData = doc.data()
                 mData.isOpen = false
-                mData.dateClosed = new Date().toISOString
+                mData.dateClosed = new Date().toISOString()        
             });
+            console.log(`********************* offer documentID: ${mdocID}`)
+            console.log(`********************* offer data: ${JSON.stringify(mData)}`)
+
             let ref1
             if (mdocID) {
                  ref1 = await admin.firestore()
                     .collection('invoiceOffers').doc(mdocID).set(mData)
                     .catch(function (error) {
-                        console.log("Error getting Firestore document ");
+                        console.log("----- Error updating Firestore Offer document ");
                         console.log(error)
                         return null
                     });
-                console.log(`********** Data successfully updated on Firestore!`)
+                console.log(`********** Data successfully updated on Firestore: \n ${JSON.stringify(mData)}`)
             }
             return ref1
         } catch (e) {
-            console.log('##### ERROR, probably JSON data format related')
+            console.log('##### ERROR, probably JSON data format related:')
             console.log(e)
             return null
         }
