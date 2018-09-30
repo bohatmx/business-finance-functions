@@ -13,6 +13,7 @@ import * as AcceptInvoice from './modules/accept_invoice'
 import * as MakeOffer from './modules/make-offer'
 import * as CloseOffer from './modules/close-offer'
 import * as MakeInvoiceBid from './modules/make_invoice.bid'
+import * as ExecuteAutoTrade from './modules/auto_trade_exec'
 
 admin.initializeApp();
 
@@ -30,4 +31,5 @@ export const makeOffer = MakeOffer.makeOffer
 export const closeOffer = CloseOffer.closeOffer
 export const acceptInvoice = AcceptInvoice.acceptInvoice
 export const makeInvoiceBid = MakeInvoiceBid.makeInvoiceBid
+export const executeAutoTrade = ExecuteAutoTrade.executeAutoTrades
 

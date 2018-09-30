@@ -15,6 +15,7 @@ const AcceptInvoice = require("./modules/accept_invoice");
 const MakeOffer = require("./modules/make-offer");
 const CloseOffer = require("./modules/close-offer");
 const MakeInvoiceBid = require("./modules/make_invoice.bid");
+const ExecuteAutoTrade = require("./modules/auto_trade_exec");
 admin.initializeApp();
 exports.userAdded = UserAdded.userCreated;
 exports.userDeleted = UserDeleted.userDeleted;
@@ -30,4 +31,5 @@ exports.makeOffer = MakeOffer.makeOffer;
 exports.closeOffer = CloseOffer.closeOffer;
 exports.acceptInvoice = AcceptInvoice.acceptInvoice;
 exports.makeInvoiceBid = MakeInvoiceBid.makeInvoiceBid;
+exports.executeAutoTrade = ExecuteAutoTrade.executeAutoTrades;
 //# sourceMappingURL=index.js.map
