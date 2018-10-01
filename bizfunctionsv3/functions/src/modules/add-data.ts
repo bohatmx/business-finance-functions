@@ -6,7 +6,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
-
+const uuid = require('uuid/v1');
 export const addData = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
@@ -39,12 +39,12 @@ export const addData = functions.https.onRequest(async (request, response) => {
         } else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
-       
+
         console.log('####### --- writing to BFN: ---> ' + url)
 
         // Send a POST request to BFN
         try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
+            const mresponse = await AxiosComms.AxiosComms.execute(url, data)
             console.log(`####### BFN response status: ##########: ${mresponse.status}`)
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data)

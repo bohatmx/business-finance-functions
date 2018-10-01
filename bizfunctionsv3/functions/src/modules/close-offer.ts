@@ -43,7 +43,7 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
 
         console.log(`####### --- executing CloseOffer on BFN Blockchain: --- ####### ${url}`)
         try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,map)
+            const mresponse = await AxiosComms.AxiosComms.execute(url, map)
             if (mresponse.status === 200) {
                 return writeToFirestore()
             } else {
@@ -61,7 +61,7 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
 
     async function writeToFirestore() {
         console.log(`################### writeToFirestore, close Offer :${offerId}`)
-        
+
         try {
             let mdocID
             let mData
@@ -77,14 +77,14 @@ export const closeOffer = functions.https.onRequest(async (request, response) =>
                 mdocID = doc.id
                 mData = doc.data()
                 mData.isOpen = false
-                mData.dateClosed = new Date().toISOString()        
+                mData.dateClosed = new Date().toISOString()
             });
             console.log(`********************* offer documentID: ${mdocID}`)
             console.log(`********************* offer data: ${JSON.stringify(mData)}`)
 
             let ref1
             if (mdocID) {
-                 ref1 = await admin.firestore()
+                ref1 = await admin.firestore()
                     .collection('invoiceOffers').doc(mdocID).set(mData)
                     .catch(function (error) {
                         console.log("----- Error updating Firestore Offer document ");

@@ -87,7 +87,7 @@ export const directWallet = functions.https.onRequest(async (request, response) 
             const transactionResult = await server.submitTransaction(transaction)
             console.log('transactionResult: ' + JSON.stringify(StellarSdk.xdr.TransactionResult.fromXDR(
                 transactionResult.result_xdr, 'base64')));
-            
+
             if (transactionResult.statusCode === 200) {
                 console.log('****** Major SUCCESS!!!! Account created on Stellar Blockchain Network. will write wallet to Firestore')
                 wallet.success = true
@@ -107,7 +107,7 @@ export const directWallet = functions.https.onRequest(async (request, response) 
 
     async function sendToTopic(topic) {
 
-        let msg = 'A BFN Wallet created. Public Key: ' + accountID 
+        let msg = 'A BFN Wallet created. Public Key: ' + accountID
         if (topic === 'walletsFailed') {
             msg = 'Wallet creation failed';
         }
