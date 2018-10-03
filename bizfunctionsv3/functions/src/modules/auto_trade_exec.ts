@@ -11,11 +11,11 @@ const uuid = require('uuid/v1');
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 
 export const executeAutoTrades = functions
-    .runWith({ memory: '256MB', timeoutSeconds: 240 })
+    .runWith({ memory: '256MB', timeoutSeconds: 30 })
     .https.onRequest(async (request, response) => {
         if (!request.body) {
             console.log('ERROR - request has no body')
-            return response.sendStatus(500)
+            return response.status(500).send('Request has no body')
         }
         console.log(`##### Incoming debug ${request.body.debug}`)
         const debug = request.body.debug
@@ -42,7 +42,7 @@ export const executeAutoTrades = functions
             if (result === OFFERS_AVAILABLE) {
                 buildUnits()
                 await writeAutoTradeStart()
-                return await validateBids()
+                await validateBids()
             } else {
                 console.log('################ Done. Auto Trade Session stopped - No open offers ############')
             }
@@ -61,10 +61,17 @@ export const executeAutoTrades = functions
         }
 
         async function validateBids() {
-            for await (const unit of units) {
-                await validateBid(unit)
+            const promises = []
+            units.forEach(unit => {
+                const promise = validateBid(unit)
+                promises.push(promise);
+            })
+            console.log(`######## validateBids complete. returning Promise.all ....`)
+            if (bidCount > 0) {
+                return response.status(200).send(`\n\nAuto Trading Session:  No open offers. Quitting\n\n`);
             }
-            return null
+            return 0
+            //return Promise.all(promises)
         }
 
         async function validateBid(unit) {
@@ -105,7 +112,7 @@ export const executeAutoTrades = functions
             } else {
                 //this offer has not met all validation requirements
                 console.log(`---- Offer validation failed, bid ignored. offerAmount: ${unit.offer.offerAmount} investor: ${unit.profile.name}`)
-                return null
+                return 0
             }
         }
 
@@ -239,7 +246,7 @@ export const executeAutoTrades = functions
                 bidCount++
                 return m
             } else {
-                return null
+                return 0
             }
 
         }

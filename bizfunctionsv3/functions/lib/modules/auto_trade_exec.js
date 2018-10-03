@@ -2,13 +2,6 @@
 // ###########################################################################
 // Execute Auto Trading Session - investors matched with offers and bids made
 // ###########################################################################
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -18,11 +11,11 @@ const Data = require("../models/data");
 const uuid = require('uuid/v1');
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
-    .runWith({ memory: '256MB', timeoutSeconds: 240 })
+    .runWith({ memory: '256MB', timeoutSeconds: 30 })
     .https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body');
-        return response.sendStatus(500);
+        return response.status(500).send('Request has no body');
     }
     console.log(`##### Incoming debug ${request.body.debug}`);
     const debug = request.body.debug;
@@ -45,7 +38,7 @@ exports.executeAutoTrades = functions
         if (result === OFFERS_AVAILABLE) {
             buildUnits();
             await writeAutoTradeStart();
-            return await validateBids();
+            await validateBids();
         }
         else {
             console.log('################ Done. Auto Trade Session stopped - No open offers ############');
@@ -63,21 +56,17 @@ exports.executeAutoTrades = functions
         }
     }
     async function validateBids() {
-        var e_1, _a;
-        try {
-            for (var units_1 = __asyncValues(units), units_1_1; units_1_1 = await units_1.next(), !units_1_1.done;) {
-                const unit = units_1_1.value;
-                await validateBid(unit);
-            }
+        const promises = [];
+        units.forEach(unit => {
+            const promise = validateBid(unit);
+            promises.push(promise);
+        });
+        console.log(`######## validateBids complete. returning Promise.all ....`);
+        if (bidCount > 0) {
+            return response.status(200).send(`\n\nAuto Trading Session:  No open offers. Quitting\n\n`);
         }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (units_1_1 && !units_1_1.done && (_a = units_1.return)) await _a.call(units_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-        return null;
+        return 0;
+        //return Promise.all(promises)
     }
     async function validateBid(unit) {
         console.log(`-----------> validating possible bid: ${unit.offer.offerAmount} for: 
@@ -114,7 +103,7 @@ exports.executeAutoTrades = functions
         else {
             //this offer has not met all validation requirements
             console.log(`---- Offer validation failed, bid ignored. offerAmount: ${unit.offer.offerAmount} investor: ${unit.profile.name}`);
-            return null;
+            return 0;
         }
     }
     async function writeBidToBFN(unit) {
@@ -242,7 +231,7 @@ exports.executeAutoTrades = functions
             return m;
         }
         else {
-            return null;
+            return 0;
         }
     }
     async function getData() {
