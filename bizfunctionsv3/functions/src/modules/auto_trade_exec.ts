@@ -61,15 +61,13 @@ export const executeAutoTrades = functions
         }
 
         async function validateBids() {
+
             const promises = []
             units.forEach(unit => {
                 const promise = validateBid(unit)
                 promises.push(promise);
             })
             console.log(`######## validateBids complete. returning Promise.all ....`)
-            if (bidCount > 0) {
-                return response.status(200).send(`\n\nAuto Trading Session:  No open offers. Quitting\n\n`);
-            }
             return 0
             //return Promise.all(promises)
         }
@@ -356,9 +354,15 @@ export const executeAutoTrades = functions
                 offerIndex++
             } while (offerIndex < offers.length);
 
+            shuffleOffers(units)
             console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers assigned: ${offerIndex}`)
         }
-
+        function shuffleOffers(offerUnits) {
+            for (let i = offerUnits.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [offerUnits[i], offerUnits[j]] = [offerUnits[j], offerUnits[i]];
+            }
+        }
         async function writeAutoTradeStart() {
             console.log('################### writeAutoTradeStart II ######################')
 
