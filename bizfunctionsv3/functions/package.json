@@ -1,5 +1,8 @@
 {
   "name": "bfn-functions",
+  "engines": {
+    "node": "8"
+  },
   "scripts": {
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
@@ -12,7 +15,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "firebase-admin": "~5.12.1",
-    "firebase-functions": "^1.0.3",
+    "firebase-functions": "^2.0.5",
     "stellar-sdk": "^0.8.2",
     "crypto-js": "^3.1.9-1",
     "request": "2.87.0",
