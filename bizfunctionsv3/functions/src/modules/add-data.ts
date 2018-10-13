@@ -7,7 +7,7 @@ import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
 import * as Helper from "./wallet-helper";
-const uuid = require("uuid/v1");
+// const uuid = require("uuid/v1");
 
 export const addData = functions
   .runWith({ memory: "256MB", timeoutSeconds: 120 })
@@ -35,7 +35,7 @@ export const addData = functions
     const ref = await writeToBFN();
     let url;
     if (ref) {
-      response.status(200).send("OK");
+      response.status(200).send(ref.path);
     } else {
       response.status(400).send("addData function failed");
     }
@@ -59,14 +59,14 @@ export const addData = functions
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ###########");
-          return null;
+          throw new Error('BFN failed to add data');
         }
       } catch (error) {
         console.log(
           "--------------- axios: BFN blockchain problem -----------------"
         );
         console.log(error);
-        return null;
+        throw new Error('BFN failed to add data');
       }
     }
 
@@ -83,7 +83,7 @@ export const addData = functions
           .catch(function(error) {
             console.log("Error writing Firestore document ");
             console.log(error);
-            return null;
+            throw new Error('Failed to add data')
           });
         console.log(
           `********** Data successfully written to Firestore! ${reference.path}`
@@ -93,15 +93,15 @@ export const addData = functions
           apiSuffix === "Supplier" ||
           apiSuffix === "Investor"
         ) {
-          await addUser();
-          const result = await getWallet();
-          console.log(`wallet creation result: ${result}`);
+          await addUser()
+          const result = await getWallet()
+          console.log(`wallet creation result: ${result}`)
         }
         return reference;
       } catch (e) {
         console.log("##### ERROR, probably JSON data format related");
         console.log(e);
-        throw new Error("Unable to add user or wallet to Firestore");
+        throw new Error(`Unable to add user or wallet to Firestore: ${e}`);
       }
     }
     async function addUser() {
@@ -109,7 +109,7 @@ export const addData = functions
         console.log("ERROR - user object not found");
         throw new Error("ERROR - user object not found in request data");
       }
-      console.log(`..... adding Admin User: ${user}`);
+      console.log(`..... adding Admin User: ${user.email}`);
       if (debug) {
         url = BFNConstants.Constants.DEBUG_URL + "User";
       } else {
@@ -120,24 +120,38 @@ export const addData = functions
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         console.log(`## BFN response status: ###: ${mresponse.status}`);
         if (mresponse.status === 200) {
-          const zref = await admin
-            .firestore()
-            .collection("users")
-            .add(mresponse.data)
+          const xref = await admin
+            .auth()
+            .createUser({
+              email: user.email,
+              password: user.password,
+              emailVerified: false,
+              displayName: user.firstName + " " + user.lastName,
+            })
+            .then(async fbUser => {
+              console.log(fbUser);
+              mresponse.data.uid = fbUser.uid;
+              const zref = await admin
+                .firestore()
+                .collection("users")
+                .add(mresponse.data)
+                .catch(e => {
+                  console.log(e);
+                  throw new Error("Unable to add user to Firestore");
+                });
+              console.log(zref);
+              return zref;
+            })
             .catch(e => {
               console.log(e);
-              throw new Error("Unable to add user to Firestore");
+              throw new Error(`failed to create Firebase user ${e}`);
             });
-          console.log(zref);
-          return zref;
+          console.log(xref);
         } else {
           console.log("******** BFN ERROR ###########");
           throw new Error("Failed to add user");
         }
       } catch (error) {
-        console.log(
-          "--------------- axios: BFN blockchain problem -----------------"
-        );
         console.log(error);
         throw new Error(`Failed to add user: ${error}`);
       }
@@ -149,10 +163,16 @@ export const addData = functions
       }
       let result;
       try {
-        result = Helper.createWallet(sourceSeed, data.participantId, apiSuffix, debug);
+        result = Helper.createWallet(
+          sourceSeed,
+          data.participantId,
+          apiSuffix,
+          debug
+        );
         console.log(`++++ wallet creation result: ${result}`);
       } catch (e) {
         console.log(e);
+        throw new Error(`Failed to create wallet`)
       }
       return result;
     }

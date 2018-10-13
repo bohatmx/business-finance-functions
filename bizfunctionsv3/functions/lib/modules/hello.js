@@ -5,7 +5,6 @@ const functions = require("firebase-functions");
 // https://firebase.google.com/docs/functions/typescript
 exports.helloWorld = functions.https.onRequest((request, response) => {
     if (request.body) {
-        const key = request.body.key;
         console.log('data from browser: ' + request.body.text);
         response.send("Hello from the Finance Business Network! with data: " + request.body.text);
     }
