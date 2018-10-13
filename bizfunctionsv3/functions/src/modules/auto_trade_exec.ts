@@ -11,7 +11,7 @@ const uuid = require('uuid/v1');
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 
 export const executeAutoTrades = functions
-    .runWith({ memory: '256MB', timeoutSeconds: 30 })
+    .runWith({ memory: '256MB', timeoutSeconds: 240 })
     .https.onRequest(async (request, response) => {
         if (!request.body) {
             console.log('ERROR - request has no body')
