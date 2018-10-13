@@ -26,7 +26,7 @@ exports.executeAutoTrades = functions
     let possibleAmount = 0.0;
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
-    const apiSuffix = 'MakeInvoiceBid';
+    const startDate = new Date().toISOString();
     let bidCount = 0;
     const OFFERS_AVAILABLE = 0;
     await startAutoTradeSession();
@@ -111,6 +111,7 @@ exports.executeAutoTrades = functions
         querySnap.forEach(doc => {
             docId = doc.id;
         });
+        const apiSuffix = 'MakeInvoiceBid';
         const bidQuerySnap = await admin.firestore().collection('invoiceOffers').doc(docId).collection('invoiceBids').get();
         let reserveTotal = 0.0;
         bidQuerySnap.forEach(doc => {
@@ -362,6 +363,7 @@ exports.executeAutoTrades = functions
         const endTime = new Date().getTime();
         const elapsed = (endTime - startTime) / 1000;
         const mStart = {
+            'dateStarted': startDate,
             'dateEnded': new Date().toISOString(),
             'possibleAmount': possibleAmount,
             'possibleTrades': units.length,

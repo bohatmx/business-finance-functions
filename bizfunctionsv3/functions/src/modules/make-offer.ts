@@ -49,13 +49,13 @@ export const makeOffer = functions.https.onRequest(async (request, response) => 
                 return writeToFirestore(mresponse.data)
             } else {
                 console.log('******** BFN ERROR ###########')
-                return null
+                throw new Error(`MakeOffer failed: ${mresponse.status}`)
             }
 
         } catch (error) {
             console.log('--------------- axios: BFN blockchain problem -----------------')
             console.log(error);
-            return null;
+            throw new Error(`MakeOffer failed: ${error}`)
         }
 
     }
@@ -70,7 +70,7 @@ export const makeOffer = functions.https.onRequest(async (request, response) => 
                 .catch(function (error) {
                     console.log("Error getting Firestore document ");
                     console.log(error)
-                    return null
+                    throw new Error(`MakeOffer failed: ${error}`)
                 });
             console.log(`********** Data successfully written to Firestore! ${ref1.path}`)
 
@@ -78,7 +78,7 @@ export const makeOffer = functions.https.onRequest(async (request, response) => 
         } catch (e) {
             console.log('##### ERROR, probably JSON data format related')
             console.log(e)
-            return null
+            throw new Error(`MakeOffer failed: ${e}`)
         }
 
     }

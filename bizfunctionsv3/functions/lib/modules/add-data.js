@@ -11,7 +11,11 @@ const uuid = require('uuid/v1');
 exports.addData = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body');
-        return response.sendStatus(500);
+        return response.status(400).send('request has no body');
+    }
+    if (!request.body.apiSuffix) {
+        console.log('ERROR - request needs an apiSuffix');
+        return response.status(400).send('request has no apiSuffix');
     }
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming collectionName ${request.body.collectionName}`);

@@ -11,7 +11,7 @@ const uuid = require('uuid/v1');
 exports.registerInvoice = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body');
-        return response.sendStatus(400);
+        return response.status(400).send('request has no body');
     }
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
@@ -46,13 +46,13 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             }
             else {
                 console.log('******** BFN ERROR ###########');
-                return null;
+                throw new Error(`RegisterInvoice failed: ${mresponse.status}`);
             }
         }
         catch (error) {
             console.log('--------------- axios: BFN blockchain problem -----------------');
             console.log(error);
-            return null;
+            throw new Error(`RegisterInvoice failed: ${error}`);
         }
     }
     async function writeToFirestore(mdata) {
@@ -68,7 +68,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .get().catch(function (error) {
                     console.log("Error getting Firestore document ");
                     console.log(error);
-                    return null;
+                    throw new Error(`RegisterInvoice failed: ${error}`);
                 });
                 snapshot.forEach(doc => {
                     mdocID = doc.id;
@@ -85,7 +85,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .catch(function (error) {
                     console.log("Error getting Firestore document ");
                     console.log(error);
-                    return null;
+                    throw new Error(`RegisterInvoice failed: ${error}`);
                 });
                 console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
             }
@@ -97,7 +97,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .get().catch(function (error) {
                     console.log("Error writing Firestore document ");
                     console.log(error);
-                    return null;
+                    throw new Error(`RegisterInvoice failed: ${error}`);
                 });
                 snapshot.forEach(doc => {
                     docID = doc.id;
@@ -113,7 +113,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .catch(function (error) {
                     console.log("Error writing Firestore document ");
                     console.log(error);
-                    return null;
+                    throw new Error(`RegisterInvoice failed: ${error}`);
                 });
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
             }
@@ -122,7 +122,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         catch (e) {
             console.log('##### ERROR, probably JSON data format related');
             console.log(e);
-            return null;
+            throw new Error(`RegisterInvoice failed: ${e}`);
         }
     }
 });

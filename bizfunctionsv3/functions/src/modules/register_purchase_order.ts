@@ -11,7 +11,7 @@ const uuid = require('uuid/v1')
 export const registerPurchaseOrder = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
-        return response.sendStatus(400)
+        return response.status(400).send('request has no body')
     }
     console.log(`##### Incoming debug ${request.body.debug}`)
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
@@ -49,13 +49,13 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
                 return writeToFirestore(mresponse.data)
             } else {
                 console.log('******** BFN ERROR ###########')
-                return null
+                throw new Error(`RegisterPurchaseOrder failed: ${mresponse.status}`)
             }
 
         } catch (error) {
             console.log('--------------- axios: BFN blockchain problem -----------------')
             console.log(error);
-            return null;
+            throw new Error(`RegisterPurchaseOrder failed: ${error}`)
         }
 
     }
@@ -73,7 +73,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
                     .get().catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`RegisterPurchaseOrder failed: ${error}`)
                     });
                 snapshot.forEach(doc => {
                     mdocID = doc.id
@@ -90,7 +90,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
                     .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`RegisterPurchaseOrder failed: ${error}`)
                     });
                 console.log(`********** Data successfully written to Firestore! ${ref1.path}`)
             }
@@ -103,7 +103,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
                     .get().catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`RegisterPurchaseOrder failed: ${error}`)
                     });
                 snapshot.forEach(doc => {
                     docID = doc.id
@@ -119,7 +119,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
                     .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`RegisterPurchaseOrder failed: ${error}`)
                     });
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`)
             }
@@ -127,7 +127,7 @@ export const registerPurchaseOrder = functions.https.onRequest(async (request, r
         } catch (e) {
             console.log('##### ERROR, probably JSON data format related')
             console.log(e)
-            return null
+            throw new Error(`RegisterPurchaseOrder failed: ${e}`)
         }
 
     }

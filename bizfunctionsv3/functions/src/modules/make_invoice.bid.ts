@@ -11,7 +11,7 @@ const uuid = require('uuid/v1')
 export const makeInvoiceBid = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
-        return response.sendStatus(400)
+        return response.status(400).send('request has no body')
     }
     console.log(`##### Incoming debug ${request.body.debug}`)
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
@@ -48,13 +48,14 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
                 return writeToFirestore(mresponse.data)
             } else {
                 console.log('******** BFN ERROR ###########')
-                return null
+                throw new Error(`MakeInvoiceBid failed in BFN status: ${mresponse.status}`)
+                
             }
 
         } catch (error) {
             console.log('--------------- axios: BFN blockchain problem -----------------')
             console.log(error);
-            return null;
+            throw new Error(`MakeInvoiceBid failed in BFN status: ${error}`)
         }
 
     }
@@ -87,7 +88,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
                     .catch(function (error) {
                         console.log("Error getting Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`MakeInvoiceBid failed in Firestore`)
                     });
                 console.log(`********** Data successfully written to Firestore! ${ref1.path}`)
             }
@@ -100,7 +101,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
                 .get().catch(function (error) {
                     console.log("Error writing Firestore document ");
                     console.log(error)
-                    return null
+                    throw new Error(`MakeInvoiceBid failed in BFN status: ${error}`)
                 });
             msnapshot.forEach(doc => {
                 docID = doc.id
@@ -113,7 +114,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
                     .catch(function (error) {
                         console.log("Error writing Firestore document ");
                         console.log(error)
-                        return null
+                        throw new Error(`MakeInvoiceBid failed in Firestore: ${error}`)
                     });
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`)
             }
@@ -122,7 +123,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
         } catch (e) {
             console.log('##### ERROR, probably JSON data format related')
             console.log(e)
-            return null
+            throw new Error(`MakeInvoiceBid failed in Firestore: ${e}`)
         }
     }
     async function checkTotalBids(offerDocID, offerId) {
@@ -163,13 +164,13 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
                         return 'ok'
                     } else {
                         console.log('******** BFN ERROR ###########')
-                        return null
+                        throw new Error(`MakeInvoiceBid failed to close offer: ${mresponse.status}`)
                     }
 
                 } catch (error) {
                     console.log('--------------- axios: BFN blockchain problem -----------------')
                     console.log(error);
-                    return null;
+                    throw new Error(`MakeInvoiceBid failed to close offer: ${error}`)
                 }
 
             } else {
@@ -178,6 +179,7 @@ export const makeInvoiceBid = functions.https.onRequest(async (request, response
         } catch (e) {
             console.log('--------------- Firestore: Check Totals PROBLEM -----------------')
             console.log(e);
+            throw new Error(`MakeInvoiceBid failed to close offer: ${e}`)
         }
         return null
     }
