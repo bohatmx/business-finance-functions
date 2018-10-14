@@ -9,15 +9,17 @@ export const userCreated = functions.firestore
     .onCreate((snap, context) => {
 
         const user = snap.data();
-        console.log('userCreated function: ' + user.firstName + ' '
+        console.log(snap)
+        console.log(user)
+        console.log('userCreated adding: ' + user.firstName + ' '
         + user.lastName + ' - ' + user.email)
         const payload = {
             data: {
                 json: JSON.stringify(user),
-                messageType: 'USER'
+                messageType: 'USER_ADDED'
             }
         }
-        const topic = 'users';
+        const topic = 'usersAdded';
         return admin.messaging().sendToTopic(topic, payload)
         
     });

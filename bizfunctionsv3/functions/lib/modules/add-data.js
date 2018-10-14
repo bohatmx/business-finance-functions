@@ -33,7 +33,7 @@ exports.addData = functions
     const ref = await writeToBFN();
     let url;
     if (ref) {
-        response.status(200).send("OK");
+        response.status(200).send(ref.path);
     }
     else {
         response.status(400).send("addData function failed");
@@ -57,13 +57,13 @@ exports.addData = functions
             }
             else {
                 console.log("******** BFN ERROR ###########");
-                return null;
+                throw new Error('BFN failed to add data');
             }
         }
         catch (error) {
             console.log("--------------- axios: BFN blockchain problem -----------------");
             console.log(error);
-            return null;
+            throw new Error('BFN failed to add data');
         }
     }
     async function writeToFirestore(mdata) {
@@ -77,7 +77,7 @@ exports.addData = functions
                 .catch(function (error) {
                 console.log("Error writing Firestore document ");
                 console.log(error);
-                return null;
+                throw new Error('Failed to add data');
             });
             console.log(`********** Data successfully written to Firestore! ${reference.path}`);
             if (apiSuffix === "GovtEntity" ||
@@ -92,7 +92,7 @@ exports.addData = functions
         catch (e) {
             console.log("##### ERROR, probably JSON data format related");
             console.log(e);
-            throw new Error("Unable to add user or wallet to Firestore");
+            throw new Error(`Unable to add user or wallet to Firestore: ${e}`);
         }
     }
     async function addUser() {
@@ -100,7 +100,7 @@ exports.addData = functions
             console.log("ERROR - user object not found");
             throw new Error("ERROR - user object not found in request data");
         }
-        console.log(`..... adding Admin User: ${user}`);
+        console.log(`..... adding Admin User: ${user.email}`);
         if (debug) {
             url = BFNConstants.Constants.DEBUG_URL + "User";
         }
@@ -162,6 +162,7 @@ exports.addData = functions
         }
         catch (e) {
             console.log(e);
+            throw new Error(`Failed to create wallet`);
         }
         return result;
     }
