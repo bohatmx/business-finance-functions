@@ -7,7 +7,7 @@ const StellarSdk = require("stellar-sdk");
 async function createWallet(sourceSeed, id, type, debug) {
     console.log("##### creating wallet .........");
     const dateRegistered = new Date().toISOString();
-    console.log("####### hooking up with Stellar to generate new keys, date: " +
+    console.log("####### hooking up with Stellar to generate new account, date: " +
         dateRegistered);
     const STARTING_BALANCE = "3";
     const keyPair = StellarSdk.Keypair.random();
@@ -17,6 +17,7 @@ async function createWallet(sourceSeed, id, type, debug) {
     console.log("new wallet secret: " + secret);
     let server;
     const encrypted = await MyCrypto.encrypt(accountID, secret);
+    console.log("new wallet secret encrypted: " + encrypted);
     const wallet = {
         stellarPublicKey: accountID,
         encryptedSecret: encrypted,
@@ -26,46 +27,59 @@ async function createWallet(sourceSeed, id, type, debug) {
         secret: secret,
         govtEntity: null,
         supplier: null,
-        investor: null,
+        investor: null
     };
-    if (type === 'GovtEntity') {
-        wallet.govtEntity = 'resource:com.oneconnect.biz.Wallet#' + id;
+    if (type === "GovtEntity") {
+        wallet.govtEntity = "resource:com.oneconnect.biz.GovtEntity#" + id;
     }
-    if (type === 'Supplier') {
-        wallet.supplier = 'resource:com.oneconnect.biz.Supplier#' + id;
+    if (type === "Supplier") {
+        wallet.supplier = "resource:com.oneconnect.biz.Supplier#" + id;
     }
-    if (type === 'Investor') {
-        wallet.investor = 'resource:com.oneconnect.biz.Investor#' + id;
+    if (type === "Investor") {
+        wallet.investor = "resource:com.oneconnect.biz.Investor#" + id;
     }
     if (debug) {
-        return prepareDebugWallet();
+        return await prepareDebugWallet();
     }
     else {
         if (!sourceSeed) {
             throw new Error("No stellar source seed found, wallet cannot be created");
         }
-        return prepareRealWallet();
+        return await prepareRealWallet();
     }
     async function prepareDebugWallet() {
         console.log("prepareDebugAccount: - creating DEBUG account and begging for dev XLM ########");
-        requestor.get({
-            url: "https://friendbot.stellar.org",
-            qs: { addr: accountID },
-            json: true
-        }, async function (error, mResponse, body) {
-            console.log("friendbot: response: " + JSON.stringify(mResponse));
-            if (mResponse.statusCode === 200) {
-                console.log("### MAJOR SUCCESS!!! ### test wallet has 10,000 XLM on Stellar. ####");
-                wallet.success = true;
-                await sendToTopic("walletsCreated");
-                return 0;
-            }
-            else {
-                console.log(error);
-                console.log("wallet failed, response code from Stellar: " + mResponse.statusCode);
-                return handleError();
-            }
-        });
+        try {
+            requestor.get({
+                url: "https://friendbot.stellar.org",
+                qs: { addr: accountID },
+                json: true
+            }, async function (error, mResponse, body) {
+                console.log("friendbot: response: " + JSON.stringify(mResponse));
+                if (error) {
+                    console.log(error);
+                    return handleError();
+                }
+                if (mResponse.statusCode === 200) {
+                    console.log("### MAJOR SUCCESS!!! ### dev wallet has 10,000 XLM on Stellar. ####");
+                    wallet.success = true;
+                    await writeWalletToFirestore();
+                    await sendToTopic("walletsCreated");
+                    return 0;
+                }
+                else {
+                    console.log(mResponse);
+                    console.log("wallet failed, response code from Stellar: " +
+                        mResponse.statusCode);
+                    return handleError();
+                }
+            });
+        }
+        catch (e) {
+            console.log(e);
+            throw new Error("Failed to create Stellar account");
+        }
+        return 0;
     }
     async function prepareRealWallet() {
         try {
@@ -91,7 +105,8 @@ async function createWallet(sourceSeed, id, type, debug) {
                 console.log("****** Major SUCCESS!!!! Account created on Stellar Blockchain Network. will write wallet to Firestore");
                 wallet.success = true;
                 await sendToTopic("walletsCreated");
-                return await writeWalletToFirestore();
+                await await writeWalletToFirestore();
+                return 0;
             }
             else {
                 console.log("wallet failed, response code from Stellar: " +

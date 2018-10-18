@@ -2,7 +2,7 @@ const axios = require('axios');
 export class AxiosComms {
 
     static async execute(url, data) {
-        console.log(`######### AxiosComms.execute starting; ${url} data: ${data}`)
+        console.log(`######### AxiosComms.execute starting; ${url} data: ${JSON.stringify(data)}`)
         const mresponse = await axios({
             method: 'post',
             url: url,
@@ -24,12 +24,13 @@ export class AxiosComms {
                 console.log('Something happened in setting up the request that triggered an Error: ', 
                 error.message);
             }
-            console.log(error.config);
+            console.log(error);
             throw new Error('BFN has a problem. Dont just stand there ... Deal with it!')
                
         });
 
         console.log(`####### BFN response status: ##########: ${mresponse.status}`)  
+        console.log(mresponse)
         return mresponse
     }
 }
