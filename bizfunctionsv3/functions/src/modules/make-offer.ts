@@ -7,12 +7,17 @@ import * as admin from 'firebase-admin';
 import * as BFNConstants from '../models/constants';
 import * as AxiosComms from './axios-comms';
 const uuid = require('uuid/v1')
+const Firestore = require("firestore");
 
 export const makeOffer = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log('ERROR - request has no body')
         return response.sendStatus(400)
     }
+    // const firestore = new Firestore();
+    // const settings = { /* your settings... */ timestampsInSnapshots: true };
+    // firestore.settings(settings);
+
     console.log(`##### Incoming debug ${request.body.debug}`)
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
 

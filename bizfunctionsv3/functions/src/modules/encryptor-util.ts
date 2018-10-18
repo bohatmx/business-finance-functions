@@ -13,7 +13,6 @@ export const encrypt = async (accountID, secret) =>  {
                 mode: CryptoJS.mode.CBC,
                 padding: CryptoJS.pad.Pkcs7
             });
-        console.log('PLAIN TEXT SECRET : ' + secret);
         console.log('ENCRYPTED SECRET : ' + encrypted);
         return '' + encrypted
 

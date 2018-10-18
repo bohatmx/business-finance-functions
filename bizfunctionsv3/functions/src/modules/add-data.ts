@@ -6,10 +6,13 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
-
+const Firestore = require("firestore");
 export const addData = functions
   .runWith({ memory: "256MB", timeoutSeconds: 60 })
   .https.onRequest(async (request, response) => {
+    // const firestore = new Firestore();
+    // const settings = { /* your settings... */ timestampsInSnapshots: true };
+    // firestore.settings(settings);
     if (!request.body) {
       console.log("ERROR - request has no body");
       return response.status(400).send("request has no body");

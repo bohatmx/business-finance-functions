@@ -2,6 +2,33 @@
 
 As this project is pre 1.0, breaking changes may happen for minor version bumps. A breaking change will get clearly notified in this log.
 
+## 0.9.0
+
+* Update `js-xdr` to support unmarshaling non-utf8 strings.
+* String fields returned by `Operation.fromXDRObject()` are of type `Buffer` now (except `SetOptions.home_domain` and `ManageData.name` - both required to be ASCII by stellar-core).
+
+## 0.8.3
+
+* Update `xdr` files to V10.
+
+## 0.8.2
+
+* Upgrade `js-xdr`.
+
+## 0.8.1
+
+* Removed `src` from `.npmignore`.
+
+## 0.8.0
+
+* Added support for `bump_sequence` operation.
+* Fixed many code style issues.
+* Updated docs.
+
+## 0.7.8
+
+* Updated dependencies.
+
 ## 0.7.7
 
 * Updated docs.

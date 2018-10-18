@@ -30,7 +30,6 @@ class AxiosComms {
             throw new Error('BFN has a problem. Dont just stand there ... Deal with it!');
         });
         console.log(`####### BFN response status: ##########: ${mresponse.status}`);
-        console.log(mresponse);
         return mresponse;
     }
 }

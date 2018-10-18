@@ -11,8 +11,8 @@ export const userCreated = functions.firestore
         const user = snap.data();
         console.log(snap)
         console.log(user)
-        console.log('userCreated adding: ' + user.firstName + ' '
-        + user.lastName + ' - ' + user.email)
+        console.log('userCreated added: ' + user.firstName + ' '
+        + user.lastName + ' - ' + user.email + ', sending topic message')
         const payload = {
             data: {
                 json: JSON.stringify(user),

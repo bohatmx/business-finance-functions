@@ -30,7 +30,6 @@ export class AxiosComms {
         });
 
         console.log(`####### BFN response status: ##########: ${mresponse.status}`)  
-        console.log(mresponse)
         return mresponse
     }
 }
