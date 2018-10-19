@@ -2,133 +2,199 @@
 // Add Invoice to BFN and Firestore
 // ######################################################################
 
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import * as BFNConstants from '../models/constants';
-import * as AxiosComms from './axios-comms';
-const uuid = require('uuid/v1')
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import * as BFNConstants from "../models/constants";
+import * as AxiosComms from "./axios-comms";
+const uuid = require("uuid/v1");
 
-export const registerInvoice = functions.https.onRequest(async (request, response) => {
-    if (!request.body) {
-        console.log('ERROR - request has no body')
-        return response.status(400).send('request has no body')
+export const registerInvoice = functions.https.onRequest(
+  async (request, response) => {
+    console.log(`##### Incoming debug ${request.body.debug}`);
+    console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
+
+    const debug = request.body.debug;
+    const data = request.body.data;
+    const apiSuffix = "RegisterInvoice";
+    if (validate()) {
+      await writeToBFN();
     }
-    console.log(`##### Incoming debug ${request.body.debug}`)
-    console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
+    return null;
 
-    const debug = request.body.debug
-    const data = request.body.data
-
-    const apiSuffix = 'RegisterInvoice'
-
-    const ref = await writeToBFN()
-    if (ref) {
-        response.status(200).send(ref.path);
-    } else {
-        response.sendStatus(400)
+    function validate() {
+      if (!request.body) {
+        console.log("ERROR - request has no body");
+        return response.status(400).send("request has no body");
+      }
+      if (!request.body.debug) {
+        console.log("ERROR - request has no debug flag");
+        return response.status(400).send(" request has no debug flag");
+      }
+      if (!request.body.data) {
+        console.log("ERROR - request has no data");
+        return response.status(400).send(" request has no data");
+      }
+      return true;
     }
-
-    return null
-
     //add customer to bfn blockchain
     async function writeToBFN() {
-        let url;
-        if (debug) {
-            url = BFNConstants.Constants.DEBUG_URL + apiSuffix
+      let url;
+      if (debug) {
+        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
+      } else {
+        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
+      }
+
+      console.log("####### --- writing Invoice to BFN: ---> " + url);
+      data["invoiceId"] = uuid();
+      // Send a POST request to BFN
+      try {
+        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        if (mresponse.status === 200) {
+          return writeToFirestore(mresponse.data);
         } else {
-            url = BFNConstants.Constants.RELEASE_URL + apiSuffix
+          console.log("******** BFN ERROR ### status: " + mresponse.status);
+          handleError(`RegisterInvoice failed: ${mresponse.status}`);
         }
-
-        console.log('####### --- writing Invoice to BFN: ---> ' + url)
-        data['invoiceId'] = uuid()
-        // Send a POST request to BFN
-        try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`)
-            if (mresponse.status === 200) {
-                return writeToFirestore(mresponse.data)
-            } else {
-                console.log('******** BFN ERROR ###########')
-                throw new Error(`RegisterInvoice failed: ${mresponse.status}`)
-            }
-
-        } catch (error) {
-            console.log('--------------- axios: BFN blockchain problem -----------------')
-            console.log(error);
-            throw new Error(`RegisterInvoice failed: ${error}`)
-        }
-
+      } catch (error) {
+        console.log(error);
+        handleError(`RegisterInvoice failed: ${error}`);
+      }
     }
 
     async function writeToFirestore(mdata) {
-        console.log('################### writeToFirestore, PO data from BFN:\n '
-            + JSON.stringify(mdata))
-        // Add a new data to Firestore collection 
-        try {
-            let mdocID;
-            if (!mdata.govtDocumentRef) {
-                const key = mdata.govtEntity.split('#')[1]
-                const snapshot = await admin.firestore()
-                    .collection('govtEntities').where('participantId', '==', key)
-                    .get().catch(function (error) {
-                        console.log("Error getting Firestore document ");
-                        console.log(error)
-                        throw new Error(`RegisterInvoice failed: ${error}`)
-                    });
-                snapshot.forEach(doc => {
-                    mdocID = doc.id
-                });
+      console.log(
+        "################### writeToFirestore, data from BFN:\n " +
+          JSON.stringify(mdata)
+      );
+      // Add a new data to Firestore collection
+      try {
+        const mdocID = mdata.govtDocumentRef;
 
-            } else {
-                mdocID = mdata.govtDocumentRef
-            }
-            let ref1
-            if (mdocID) {
-                 ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdocID)
-                    .collection('invoices').add(mdata)
-                    .catch(function (error) {
-                        console.log("Error getting Firestore document ");
-                        console.log(error)
-                        throw new Error(`RegisterInvoice failed: ${error}`)
-                    });
-                console.log(`********** Data successfully written to Firestore! ${ref1.path}`)
-            }
+        let ref1;
+        ref1 = await admin
+          .firestore()
+          .collection("govtEntities")
+          .doc(mdocID)
+          .collection("invoices")
+          .add(mdata)
+          .catch(function(error) {
+            console.log(error);
+            handleError(`RegisterInvoice failed: ${error}`);
+          });
+        console.log(
+          `********** Data successfully written to Firestore! ${ref1.path}`
+        );
 
-            let docID;
-            if (!mdata.supplierDocumentRef) {
-                const key = mdata.supplier.split('#')[1]
-                const snapshot = await admin.firestore()
-                    .collection('suppliers').where('participantId', '==', key)
-                    .get().catch(function (error) {
-                        console.log("Error writing Firestore document ");
-                        console.log(error)
-                        throw new Error(`RegisterInvoice failed: ${error}`)
-                    });
-                snapshot.forEach(doc => {
-                    docID = doc.id
-                });
-
-            } else {
-                docID = mdata.supplierDocumentRef
-            }
-            if (docID) {
-                const ref2 = await admin.firestore()
-                    .collection('suppliers').doc(docID)
-                    .collection('invoices').add(mdata)
-                    .catch(function (error) {
-                        console.log("Error writing Firestore document ");
-                        console.log(error)
-                        throw new Error(`RegisterInvoice failed: ${error}`)
-                    });
-                console.log(`********** Data successfully written to Firestore! ${ref2.path}`)
-            }
-            return ref1
-        } catch (e) {
-            console.log('##### ERROR, probably JSON data format related')
-            console.log(e)
-            throw new Error(`RegisterInvoice failed: ${e}`)
+        const docID = mdata.supplierDocumentRef;
+        let ref3;
+        if (docID) {
+          ref3 = await admin
+            .firestore()
+            .collection("suppliers")
+            .doc(docID)
+            .collection("invoices")
+            .add(mdata)
+            .catch(function(error) {
+              console.log(error);
+              handleError(`RegisterInvoice failed: ${error}`);
+            });
+          console.log(
+            `*** Data written to Firestore suppliers/invoices ${ref3.patht}`
+          );
+          await checkAutoAccept(mdata);
+          response.status(200).send("Invoice Registered");
         }
-
+      } catch (e) {
+        console.log(e);
+        handleError(`RegisterInvoice failed: ${e}`);
+      }
     }
-});
+    async function checkAutoAccept(invoice) {
+      console.log("checkAutoAccept, cust ref: " + invoice.govtDocumentRef);
+      let docSnapshot;
+      docSnapshot = await admin
+        .firestore()
+        .collection("govtEntities")
+        .doc(invoice.govtDocumentRef)
+        .get();
+      console.log(docSnapshot.data());
+      if (docSnapshot) {
+        if (docSnapshot.data().allowAutoAccept) {
+          console.log(
+            "Issue an InvoiceAcceptance and write to BFN & Firestore"
+          );
+          return await acceptInvoice(invoice);
+        } else {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+
+    async function acceptInvoice(invoice) {
+      console.log("#### accepting invoice ........");
+      const acc = {
+        acceptanceId: uuid(),
+        supplierName: invoice.supplierName,
+        customerName: invoice.customerName,
+        invoiceNumber: invoice.invoiceNumber,
+        date: new Date().toISOString(),
+        invoice: `resource:oneconnect.co.biz.Invoice#${invoice.invoiceNumber}`,
+        govtEntity: invoice.govtEntity,
+        supplierDocumentRef: invoice.supplierDocumentRef
+      };
+      console.log(acc);
+      let url;
+      const suffix = "AcceptInvoice";
+      if (debug) {
+        url = BFNConstants.Constants.DEBUG_URL + suffix;
+      } else {
+        url = BFNConstants.Constants.RELEASE_URL + suffix;
+      }
+
+      console.log("####### --- writing AcceptInvoice to BFN: ---> " + url);
+      // Send a POST request to BFN
+      try {
+        const mresponse = await AxiosComms.AxiosComms.execute(url, acc);
+        if (mresponse.status === 200) {
+          let mRef;
+          mRef = await admin
+            .firestore()
+            .collection("suppliers")
+            .doc(invoice.supplierDocumentRef)
+            .collection("invoiceAcceptances")
+            .add(acc)
+            .catch(function(error) {
+              console.log(error);
+              handleError(
+                "Error writing Firestore suppliers/invoiceAcceptances "
+              );
+            });
+            console.log(`Firestore document added: ${mRef.path}`)
+          return null;
+        } else {
+          console.log(`** BFN ERROR ## status: ${mresponse.status}`);
+          handleError(`RegisterInvoice failed: ${mresponse.status}`);
+        }
+      } catch (error) {
+        console.log(
+          "--------------- axios: BFN blockchain problem -----------------"
+        );
+        console.log(error);
+        handleError(`RegisterInvoice failed: ${error}`);
+      }
+    }
+    function handleError(message) {
+      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+      const payload = {
+        message: message,
+        data: request.body.data,
+        date: new Date().toISOString()
+      };
+      console.log(payload);
+      response.status(400).send(payload);
+    }
+  }
+);
