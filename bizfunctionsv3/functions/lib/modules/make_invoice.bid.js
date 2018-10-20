@@ -22,14 +22,25 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
     const debug = request.body.debug;
     const data = request.body.data;
     const apiSuffix = "MakeInvoiceBid";
-    const ref = await writeToBFN();
-    if (ref) {
-        response.status(200).send(ref.path);
-    }
-    else {
-        response.sendStatus(400);
+    if (validate()) {
+        await writeToBFN();
     }
     return null;
+    function validate() {
+        if (!request.body) {
+            console.log("ERROR - request has no body");
+            return response.status(400).send("request has no body");
+        }
+        if (!request.body.debug) {
+            console.log("ERROR - request has no debug flag");
+            return response.status(400).send(" request has no debug flag");
+        }
+        if (!request.body.data) {
+            console.log("ERROR - request has no data");
+            return response.status(400).send(" request has no data");
+        }
+        return true;
+    }
     //add customer to bfn blockchain
     async function writeToBFN() {
         let url;
@@ -54,8 +65,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
         }
         catch (error) {
             console.log("--------------- axios: BFN blockchain problem -----------------");
-            console.log(error);
-            throw new Error(`MakeInvoiceBid failed in BFN status: ${error}`);
+            handleError(error);
         }
     }
     async function writeToFirestore(mdata) {
@@ -109,7 +119,8 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                 docID = doc.id;
             });
             if (docID) {
-                const ref2 = await admin
+                let ref2;
+                ref2 = await admin
                     .firestore()
                     .collection("invoiceOffers")
                     .doc(docID)
@@ -118,17 +129,18 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                     .catch(function (error) {
                     console.log("Error writing Firestore document ");
                     console.log(error);
-                    throw new Error(`MakeInvoiceBid failed in Firestore: ${error}`);
+                    handleError(error);
                 });
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
             }
             await checkTotalBids(docID, offerId);
-            return ref1;
+            console.log('Everything seems OK. Bye!');
+            response.status(200).send(mdata);
         }
         catch (e) {
             console.log("##### ERROR, probably JSON data format related");
             console.log(e);
-            throw new Error(`MakeInvoiceBid failed in Firestore: ${e}`);
+            handleError(e);
         }
     }
     async function checkTotalBids(offerDocID, offerId) {
@@ -140,8 +152,8 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             .collection("invoiceBids")
             .get()
             .catch(function (error) {
-            console.log("Error writing Firestore document ");
             console.log(error);
+            handleError(error);
             return null;
         });
         let total = 0.0;
@@ -173,25 +185,40 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                     }
                     else {
                         console.log("******** BFN ERROR ###########");
-                        throw new Error(`MakeInvoiceBid failed to close offer: ${mresponse.status}`);
+                        handleError(mresponse);
                     }
                 }
                 catch (error) {
-                    console.log("--------------- axios: BFN blockchain problem -----------------");
-                    console.log(error);
-                    throw new Error(`MakeInvoiceBid failed to close offer: ${error}`);
+                    console.log("------ axios: BFN blockchain problem -----");
+                    handleError(error);
                 }
             }
             else {
-                console.log(`######## NOT closing offer, reservePercent == ${total} %`);
+                console.log(`# NOT closing offer, reservePercent == ${total} %`);
             }
         }
         catch (e) {
-            console.log("--------------- Firestore: Check Totals PROBLEM -----------------");
+            console.log("-- Firestore: Check Totals PROBLEM -----");
             console.log(e);
-            throw new Error(`MakeInvoiceBid failed to close offer: ${e}`);
+            handleError(e);
         }
         return null;
+    }
+    function handleError(message) {
+        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+        try {
+            const payload = {
+                name: apiSuffix,
+                message: message,
+                data: request.body.data,
+                date: new Date().toISOString()
+            };
+            console.log(payload);
+            response.status(400).send(payload);
+        }
+        catch (e) {
+            console.log("possible error propagation/cascade here. ignored");
+        }
     }
 });
 //# sourceMappingURL=make_invoice.bid.js.map

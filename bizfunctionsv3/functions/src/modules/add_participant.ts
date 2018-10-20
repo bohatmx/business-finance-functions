@@ -9,7 +9,7 @@ import * as MyComms from "./axios-comms";
 import * as MyCrypto from "./encryptor-util";
 import * as requestor from "request";
 import * as validator from "validator";
-import * as Firestore from "firestore";
+// import * as Firestore from "firestore";
 const StellarSdk = require("stellar-sdk");
 
 export const addParticipant = functions
@@ -387,6 +387,7 @@ export const addParticipant = functions
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
       isError = true;
       const payload = {
+        name: apiSuffix,
         result: result,
         message: message,
         data: request.body.data,

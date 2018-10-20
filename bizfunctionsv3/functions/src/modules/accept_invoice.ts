@@ -58,7 +58,6 @@ export const acceptInvoice = functions.https.onRequest(
 
       console.log("####### --- writing Invoice Acceptance to BFN: ---> " + url);
       data["acceptanceId"] = uuid();
-      // Send a POST request to BFN
       try {
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         console.log(
@@ -68,14 +67,13 @@ export const acceptInvoice = functions.https.onRequest(
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ###########");
-          return null;
+          handleError(mresponse)
         }
       } catch (error) {
         console.log(
           "--------------- axios: BFN blockchain problem -----------------"
         );
-        console.log(error);
-        return null;
+        handleError(error);
       }
     }
 
@@ -97,6 +95,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error getting Firestore document ");
               console.log(error);
+              handleError(error)
               return null;
             });
           snapshot.forEach(doc => {
@@ -116,7 +115,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error getting Firestore document ");
               console.log(error);
-              return null;
+              handleError(error)
             });
           console.log(
             `********** Data successfully written to Firestore! ${ref1.path}`
@@ -134,6 +133,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error writing Firestore document ");
               console.log(error);
+              handleError(error)
               return null;
             });
           snapshot.forEach(doc => {
@@ -152,17 +152,34 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error writing Firestore document ");
               console.log(error);
+              handleError(error)
               return null;
             });
           console.log(
             `********** Data successfully written to Firestore! ${ref2.path}`
           );
         }
-        return ref1;
+        console.log('Invoice accepted OK. Ciao!')
+        response.status(200).send(mdata)
       } catch (e) {
         console.log("##### ERROR, probably JSON data format related");
         console.log(e);
-        return null;
+        handleError(e)
+      }
+    }
+    function handleError(message) {
+      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+      try {
+        const payload = {
+          name: apiSuffix,
+          message: message,
+          data: request.body.data,
+          date: new Date().toISOString()
+        };
+        console.log(payload);
+        response.status(400).send(payload);
+      } catch (e) {
+        console.log('possible error propagation/cascade here. ignored')
       }
     }
   }

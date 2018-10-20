@@ -10,6 +10,7 @@ const MyComms = require("./axios-comms");
 const MyCrypto = require("./encryptor-util");
 const requestor = require("request");
 const validator = require("validator");
+// import * as Firestore from "firestore";
 const StellarSdk = require("stellar-sdk");
 exports.addParticipant = functions
     .runWith({ memory: "256MB", timeoutSeconds: 240 })
@@ -363,6 +364,7 @@ exports.addParticipant = functions
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);
         isError = true;
         const payload = {
+            name: apiSuffix,
             result: result,
             message: message,
             data: request.body.data,

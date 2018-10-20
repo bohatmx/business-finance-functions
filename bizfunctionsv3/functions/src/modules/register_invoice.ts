@@ -54,11 +54,11 @@ export const registerInvoice = functions.https.onRequest(
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ### status: " + mresponse.status);
-          handleError(`RegisterInvoice failed: ${mresponse.status}`);
+          handleError(mresponse);
         }
       } catch (error) {
         console.log(error);
-        handleError(`RegisterInvoice failed: ${error}`);
+        handleError(error);
       }
     }
 
@@ -141,7 +141,7 @@ export const registerInvoice = functions.https.onRequest(
         customerName: invoice.customerName,
         invoiceNumber: invoice.invoiceNumber,
         date: new Date().toISOString(),
-        invoice: `resource:oneconnect.co.biz.Invoice#${invoice.invoiceNumber}`,
+        invoice: `resource:oneconnect.biz.Invoice#${invoice.invoiceNumber}`,
         govtEntity: invoice.govtEntity,
         supplierDocumentRef: invoice.supplierDocumentRef
       };
@@ -172,29 +172,32 @@ export const registerInvoice = functions.https.onRequest(
                 "Error writing Firestore suppliers/invoiceAcceptances "
               );
             });
-            console.log(`Firestore document added: ${mRef.path}`)
+          console.log(`Firestore document added: ${mRef.path}`);
           return null;
         } else {
           console.log(`** BFN ERROR ## status: ${mresponse.status}`);
-          handleError(`RegisterInvoice failed: ${mresponse.status}`);
+          handleError(mresponse);
         }
       } catch (error) {
         console.log(
           "--------------- axios: BFN blockchain problem -----------------"
         );
-        console.log(error);
-        handleError(`RegisterInvoice failed: ${error}`);
+        handleError(error);
       }
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      const payload = {
-        message: message,
-        data: request.body.data,
-        date: new Date().toISOString()
-      };
-      console.log(payload);
-      response.status(400).send(payload);
+      try {
+        const payload = {
+          message: message,
+          data: request.body.data,
+          date: new Date().toISOString()
+        };
+        console.log(payload);
+        response.status(400).send(payload);
+      } catch (e) {
+        console.log('possible error propagation/cascade here. ignored')
+      }
     }
   }
 );

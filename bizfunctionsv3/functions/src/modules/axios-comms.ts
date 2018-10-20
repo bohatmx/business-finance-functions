@@ -25,11 +25,11 @@ export class AxiosComms {
                 error.message);
             }
             console.log(error);
-            throw new Error('BFN has a problem. Dont just stand there ... Deal with it!')
+            throw error
                
         });
 
-        console.log(`####### BFN response status: ##########: ${mresponse.status}`)  
+        console.log(`## BFN response status: ${mresponse.status} after request: ${url}`)  
         return mresponse
     }
 }

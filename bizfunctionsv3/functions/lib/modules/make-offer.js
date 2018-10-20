@@ -7,11 +7,11 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
-const uuid = require('uuid/v1');
+const uuid = require("uuid/v1");
 const Firestore = require("firestore");
 exports.makeOffer = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
-        console.log('ERROR - request has no body');
+        console.log("ERROR - request has no body");
         return response.sendStatus(400);
     }
     // const firestore = new Firestore();
@@ -21,15 +21,26 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
-    const apiSuffix = 'MakeOffer';
-    const ref = await writeToBFN();
-    if (ref) {
-        response.status(200).send(ref.path);
-    }
-    else {
-        response.sendStatus(400);
+    const apiSuffix = "MakeOffer";
+    if (validate()) {
+        await writeToBFN();
     }
     return null;
+    function validate() {
+        if (!request.body) {
+            console.log("ERROR - request has no body");
+            return response.status(400).send("request has no body");
+        }
+        if (!request.body.debug) {
+            console.log("ERROR - request has no debug flag");
+            return response.status(400).send(" request has no debug flag");
+        }
+        if (!request.body.data) {
+            console.log("ERROR - request has no data");
+            return response.status(400).send(" request has no data");
+        }
+        return true;
+    }
     //add customer to bfn blockchain
     async function writeToBFN() {
         let url;
@@ -39,8 +50,8 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log('####### --- writing Offer to BFN: ---> ' + url);
-        data['offerId'] = uuid();
+        console.log("####### --- writing Offer to BFN: ---> " + url);
+        data["offerId"] = uuid();
         // Send a POST request to BFN
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
@@ -49,35 +60,53 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 return writeToFirestore(mresponse.data);
             }
             else {
-                console.log('******** BFN ERROR ###########');
-                throw new Error(`MakeOffer failed: ${mresponse.status}`);
+                console.log("******** BFN ERROR ###########");
+                handleError(mresponse);
             }
         }
         catch (error) {
-            console.log('--------------- axios: BFN blockchain problem -----------------');
-            console.log(error);
-            throw new Error(`MakeOffer failed: ${error}`);
+            console.log("--------------- axios: BFN blockchain problem -----------------");
+            handleError(error);
         }
     }
     async function writeToFirestore(mdata) {
-        console.log('################### writeToFirestore, Offer data from BFN:\n '
-            + JSON.stringify(mdata));
-        // Add a new data to Firestore collection 
+        console.log("################### writeToFirestore, Offer data from BFN:\n " +
+            JSON.stringify(mdata));
+        // Add a new data to Firestore collection
         try {
-            const ref1 = await admin.firestore()
-                .collection('invoiceOffers').add(mdata)
+            let ref1;
+            ref1 = await admin
+                .firestore()
+                .collection("invoiceOffers")
+                .add(mdata)
                 .catch(function (error) {
                 console.log("Error getting Firestore document ");
                 console.log(error);
-                throw new Error(`MakeOffer failed: ${error}`);
+                handleError(error);
             });
             console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
             return ref1;
         }
         catch (e) {
-            console.log('##### ERROR, probably JSON data format related');
+            console.log("##### ERROR, probably JSON data format related");
             console.log(e);
-            throw new Error(`MakeOffer failed: ${e}`);
+            handleError(e);
+        }
+    }
+    function handleError(message) {
+        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+        try {
+            const payload = {
+                name: apiSuffix,
+                message: message,
+                data: request.body.data,
+                date: new Date().toISOString()
+            };
+            console.log(payload);
+            response.status(400).send(payload);
+        }
+        catch (e) {
+            console.log("possible error propagation/cascade here. ignored");
         }
     }
 });
