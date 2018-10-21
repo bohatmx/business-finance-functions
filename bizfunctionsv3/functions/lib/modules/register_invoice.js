@@ -7,6 +7,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
+const InvoiceUpdate = require("../modules/update-invoice-with-acceptance");
 const uuid = require("uuid/v1");
 exports.registerInvoice = functions.https.onRequest(async (request, response) => {
     console.log(`##### Incoming debug ${request.body.debug}`);
@@ -131,7 +132,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             customerName: invoice.customerName,
             invoiceNumber: invoice.invoiceNumber,
             date: new Date().toISOString(),
-            invoice: `resource:oneconnect.biz.Invoice#${invoice.invoiceNumber}`,
+            invoice: `resource:com.oneconnect.biz.Invoice#${invoice.invoiceId}`,
             govtEntity: invoice.govtEntity,
             supplierDocumentRef: invoice.supplierDocumentRef
         };
@@ -161,6 +162,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     handleError("Error writing Firestore suppliers/invoiceAcceptances ");
                 });
                 console.log(`Firestore document added: ${mRef.path}`);
+                await InvoiceUpdate.updateInvoice(acc);
                 return null;
             }
             else {

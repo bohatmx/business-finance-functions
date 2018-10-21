@@ -7,7 +7,7 @@ import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
 const uuid = require("uuid/v1");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 
 export const makeInvoiceBid = functions.https.onRequest(
   async (request, response) => {

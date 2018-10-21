@@ -6,6 +6,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
+import * as InvoiceUpdate from '../modules/update-invoice-with-acceptance'
 const uuid = require("uuid/v1");
 
 export const registerInvoice = functions.https.onRequest(
@@ -141,7 +142,7 @@ export const registerInvoice = functions.https.onRequest(
         customerName: invoice.customerName,
         invoiceNumber: invoice.invoiceNumber,
         date: new Date().toISOString(),
-        invoice: `resource:oneconnect.biz.Invoice#${invoice.invoiceNumber}`,
+        invoice: `resource:com.oneconnect.biz.Invoice#${invoice.invoiceId}`,
         govtEntity: invoice.govtEntity,
         supplierDocumentRef: invoice.supplierDocumentRef
       };
@@ -173,6 +174,7 @@ export const registerInvoice = functions.https.onRequest(
               );
             });
           console.log(`Firestore document added: ${mRef.path}`);
+          await InvoiceUpdate.updateInvoice(acc)
           return null;
         } else {
           console.log(`** BFN ERROR ## status: ${mresponse.status}`);

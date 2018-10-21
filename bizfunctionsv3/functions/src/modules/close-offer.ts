@@ -6,7 +6,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"offerId":"60bb1a50-c407-11e8-8c87-91c28e73e521", "debug": "true"}'   https://bfnrestv3.eu-gb.mybluemix.net/api/CloseOffer
 export const closeOffer = functions.https.onRequest(
   async (request, response) => {

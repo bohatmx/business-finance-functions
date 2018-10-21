@@ -8,7 +8,7 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const BFNComms = require("./axios-comms");
 const Data = require("../models/data");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 const uuid = require("uuid/v1");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
@@ -32,23 +32,25 @@ exports.executeAutoTrades = functions
     const startTime = new Date().getTime();
     const startDate = new Date().toISOString();
     let bidCount = 0;
-    const OFFERS_AVAILABLE = 0;
     await startAutoTradeSession();
     return null;
     async function startAutoTradeSession() {
         const date = new Date().toISOString();
         console.log(`################### starting AutoTrade Session ########### ${date}`);
+        await writeAutoTradeStart();
         const result = await getData();
-        if (result === OFFERS_AVAILABLE) {
+        if (result > 0) {
             buildUnits();
-            await writeAutoTradeStart();
             await validateBids();
         }
         else {
             console.log("################ Done. Auto Trade Session stopped - No open offers ############");
         }
+        return finishAutoTrades();
+    }
+    async function finishAutoTrades() {
         await updateAutoTradeStart();
-        if (bidCount > 0) {
+        if (bidCount === 0) {
             return response
                 .status(200)
                 .send(`\n\nAuto Trading Session:  No open offers. Quitting\n\n`);
@@ -67,9 +69,8 @@ exports.executeAutoTrades = functions
             const promise = validateBid(unit);
             promises.push(promise);
         });
-        console.log(`######## validateBids complete. returning Promise.all ....`);
+        console.log(`######## validateBids complete. ...closing up!`);
         return 0;
-        //return Promise.all(promises)
     }
     async function validateBid(unit) {
         console.log(`-----------> validating possible bid: ${unit.offer.offerAmount} for: 
@@ -112,9 +113,8 @@ exports.executeAutoTrades = functions
     async function writeBidToBFN(unit) {
         //get existing invoice bids for this offer
         const colRef = admin.firestore().collection("invoiceOffers");
-        const querySnap = await colRef
-            .where("offerId", "==", unit.offer.offerId)
-            .get();
+        let querySnap;
+        querySnap = await colRef.where("offerId", "==", unit.offer.offerId).get();
         let docId;
         querySnap.forEach(doc => {
             docId = doc.id;
@@ -159,14 +159,14 @@ exports.executeAutoTrades = functions
         console.log(`####### --- executing ${apiSuffix} on BFN Blockchain: --- ####### ${url}`);
         const blockchainResponse = await BFNComms.AxiosComms.execute(url, bid).catch(e => {
             console.log(e);
-            throw new Error(`AxiosComms failed to add bid. ${e}`);
+            handleError(e);
         });
         if (blockchainResponse.status === 200) {
             return await writeBidToFirestore(docId, bid, unit.offer.offerId);
         }
         else {
             console.log(`******** BFN ERROR ########### mresponse.status: ${blockchainResponse.status}`);
-            throw new Error(`BFN failed to add bid. mresponse.status: ${blockchainResponse.status}`);
+            handleError(blockchainResponse);
         }
     }
     async function writeBidToFirestore(docId, bid, offerId) {
@@ -178,7 +178,7 @@ exports.executeAutoTrades = functions
             .add(bid)
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to add bid to invoiceOffers collection on Firestore. ${e}`);
+            handleError(e);
         });
         const invRef = await admin
             .firestore()
@@ -194,7 +194,7 @@ exports.executeAutoTrades = functions
             .add(bid)
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to add bid to investors collection on Firestore. ${e}`);
+            handleError(e);
         });
         console.log(`++++++++ invoiceBid written to investor invoiceBids on Firestore: ${bid.investorName} for amount: ${bid.amount} ref: ${xref}`);
         console.log(`Auto Trading Session: processed ${bidCount} bids of a possible ${units.length}, date: ${new Date().toISOString()}`);
@@ -213,21 +213,21 @@ exports.executeAutoTrades = functions
         map["offerId"] = offerId;
         console.log(`####### --- executing CloseOffer on BFN Blockchain: --- ####### ${url}`);
         const blockchainResponse = await BFNComms.AxiosComms.execute(url, map).catch(e => {
-            console.log(e);
-            throw new Error(`AxiosComms failed. ${e}`);
+            handleError(e);
         });
         if (blockchainResponse.status === 200) {
             return await closeOfferOnFirestore(offerId);
         }
         else {
-            console.log(`******** BFN ERROR ########### mresponse.status: ${blockchainResponse.status}`);
-            throw new Error(`Error: closing Offer on BFN. status: ${blockchainResponse.status} `);
+            console.log(`*** BFN ERROR ###status: ${blockchainResponse.status}`);
+            handleError(blockchainResponse);
         }
     }
     async function closeOfferOnFirestore(offerId) {
         let mdocID;
         let mData;
-        const offerSnapshot = await admin
+        let offerSnapshot;
+        offerSnapshot = await admin
             .firestore()
             .collection("invoiceOffers")
             .where("offerId", "==", offerId)
@@ -235,7 +235,7 @@ exports.executeAutoTrades = functions
             .catch(error => {
             console.log("Error getting Firestore document ");
             console.log(error);
-            throw new Error("Error getting Firestore invoiceOffer document ");
+            handleError(error);
         });
         offerSnapshot.forEach(doc => {
             mdocID = doc.id;
@@ -244,7 +244,8 @@ exports.executeAutoTrades = functions
             mData.dateClosed = new Date().toISOString();
         });
         if (mdocID) {
-            const m = await admin
+            let m;
+            m = await admin
                 .firestore()
                 .collection("invoiceOffers")
                 .doc(mdocID)
@@ -252,7 +253,7 @@ exports.executeAutoTrades = functions
                 .catch(error => {
                 console.log("----- Error updating Firestore Offer document ");
                 console.log(error);
-                throw new Error("Error adding Firestore invoiceOffers document ");
+                handleError(error);
             });
             console.log(`################### closeOfferOnFirestore, closed offerId :${offerId}`);
             bidCount++;
@@ -264,14 +265,15 @@ exports.executeAutoTrades = functions
     }
     async function getData() {
         console.log("################### getData ######################");
-        const qso = await admin
+        let qso;
+        qso = await admin
             .firestore()
             .collection("invoiceOffers")
             .where("isOpen", "==", true)
             .get()
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to get open invoiceOffers from Firestore`);
+            handleError(e);
         });
         qso.docs.forEach(doc => {
             const data = doc.data();
@@ -294,20 +296,18 @@ exports.executeAutoTrades = functions
         });
         if (qso.docs.length === 0) {
             console.log("No open offers found. quitting ...");
-            response
-                .status(200)
-                .send(`Auto Trading Session complete. No open offers found for auto trades; Session stopped\n`);
-            return 9;
+            return 0;
         }
         ///////
-        const qs = await admin
+        let qs;
+        qs = await admin
             .firestore()
             .collection("autoTradeOrders")
             .where("isCancelled", "==", false)
             .get()
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to get auto trade orders from Firestore`);
+            handleError(e);
         });
         qs.docs.forEach(doc => {
             const data = doc.data();
@@ -325,13 +325,14 @@ exports.executeAutoTrades = functions
             orders.push(order);
             console.log(`###### order for: ${order.investorName} wallet key: ${order.wallet.split("#")[1]}`);
         });
-        const qsp = await admin
+        let qsp;
+        qsp = await admin
             .firestore()
             .collection("investorProfiles")
             .get()
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to get investorProfiles from Firestore`);
+            handleError(e);
         });
         qsp.docs.forEach(doc => {
             const data = doc.data();
@@ -347,7 +348,7 @@ exports.executeAutoTrades = functions
             profiles.push(profile);
             console.log(`###### profile for: ${profile.name} minimumDiscount: ${profile.minimumDiscount} maxInvestableAmount: ${profile.maxInvestableAmount} maxInvoiceAmount: ${profile.maxInvoiceAmount} `);
         });
-        return OFFERS_AVAILABLE;
+        return offers.length;
     }
     function buildUnits() {
         console.log("################### buildUnits ######################");
@@ -398,7 +399,7 @@ exports.executeAutoTrades = functions
             .set(mStart)
             .catch(e => {
             console.error(e);
-            throw new Error(`Failed to write AutoTradeStart to Firestore. ${e}`);
+            handleError(e);
         });
         console.log(`*********** autoTradeStart written to Firestore startKey: ${startKey}`);
         return 0;
@@ -422,11 +423,28 @@ exports.executeAutoTrades = functions
             .set(mStart)
             .catch(e => {
             console.log(e);
-            throw new Error(`Failed to update AutoTradeStart to Firestore. ${e}`);
+            handleError(e);
         });
         console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${elapsed} seconds. We are HAPPY, Houston!!`);
+        response.status(200).send("Auto Trading Complete");
         return mf;
+    }
+    function handleError(message) {
+        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+        try {
+            const payload = {
+                name: "AutoTradeExecution",
+                message: message,
+                data: request.body.data,
+                date: new Date().toISOString()
+            };
+            console.log(payload);
+            response.status(400).send(payload);
+        }
+        catch (e) {
+            console.log("possible error propagation/cascade here. ignored");
+        }
     }
 });
 //# sourceMappingURL=auto_trade_exec.js.map

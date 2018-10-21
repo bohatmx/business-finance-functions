@@ -145,7 +145,7 @@ exports.addParticipant = functions
             console.log("####### --- writing user to BFN: ---> " + url);
             const mresponse = await MyComms.AxiosComms.execute(url, user);
             if (mresponse.status === 200) {
-                const xref = await admin
+                await admin
                     .auth()
                     .createUser({
                     email: user.email,

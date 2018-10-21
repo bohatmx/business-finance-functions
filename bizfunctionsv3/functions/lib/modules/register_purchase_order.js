@@ -8,7 +8,7 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
 const uuid = require("uuid/v1");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 exports.registerPurchaseOrder = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");

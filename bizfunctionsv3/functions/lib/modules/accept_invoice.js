@@ -6,9 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
+const InvoiceUpdate = require("../modules/update-invoice-with-acceptance");
 const AxiosComms = require("./axios-comms");
 const uuid = require("uuid/v1");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 exports.acceptInvoice = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");
@@ -145,7 +146,8 @@ exports.acceptInvoice = functions.https.onRequest(async (request, response) => {
                 });
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
             }
-            console.log('Invoice accepted OK. Ciao!');
+            console.log("Invoice accepted OK. Ciao!");
+            await InvoiceUpdate.updateInvoice(mdata);
             response.status(200).send(mdata);
         }
         catch (e) {
@@ -167,7 +169,7 @@ exports.acceptInvoice = functions.https.onRequest(async (request, response) => {
             response.status(400).send(payload);
         }
         catch (e) {
-            console.log('possible error propagation/cascade here. ignored');
+            console.log("possible error propagation/cascade here. ignored");
         }
     }
 });

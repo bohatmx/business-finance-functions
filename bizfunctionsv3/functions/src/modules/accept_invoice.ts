@@ -5,9 +5,10 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
+import * as InvoiceUpdate from '../modules/update-invoice-with-acceptance'
 import * as AxiosComms from "./axios-comms";
 const uuid = require("uuid/v1");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 
 export const acceptInvoice = functions.https.onRequest(
   async (request, response) => {
@@ -67,7 +68,7 @@ export const acceptInvoice = functions.https.onRequest(
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ###########");
-          handleError(mresponse)
+          handleError(mresponse);
         }
       } catch (error) {
         console.log(
@@ -95,7 +96,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error getting Firestore document ");
               console.log(error);
-              handleError(error)
+              handleError(error);
               return null;
             });
           snapshot.forEach(doc => {
@@ -115,7 +116,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error getting Firestore document ");
               console.log(error);
-              handleError(error)
+              handleError(error);
             });
           console.log(
             `********** Data successfully written to Firestore! ${ref1.path}`
@@ -133,7 +134,7 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error writing Firestore document ");
               console.log(error);
-              handleError(error)
+              handleError(error);
               return null;
             });
           snapshot.forEach(doc => {
@@ -152,21 +153,24 @@ export const acceptInvoice = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error writing Firestore document ");
               console.log(error);
-              handleError(error)
+              handleError(error);
               return null;
             });
           console.log(
             `********** Data successfully written to Firestore! ${ref2.path}`
           );
         }
-        console.log('Invoice accepted OK. Ciao!')
-        response.status(200).send(mdata)
+        console.log("Invoice accepted OK. Ciao!");
+        await InvoiceUpdate.updateInvoice(mdata)
+        response.status(200).send(mdata);
       } catch (e) {
         console.log("##### ERROR, probably JSON data format related");
         console.log(e);
-        handleError(e)
+        handleError(e);
       }
     }
+
+
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
       try {
@@ -179,7 +183,7 @@ export const acceptInvoice = functions.https.onRequest(
         console.log(payload);
         response.status(400).send(payload);
       } catch (e) {
-        console.log('possible error propagation/cascade here. ignored')
+        console.log("possible error propagation/cascade here. ignored");
       }
     }
   }

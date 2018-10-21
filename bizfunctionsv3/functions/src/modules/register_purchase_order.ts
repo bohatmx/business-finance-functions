@@ -7,7 +7,7 @@ import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
 const uuid = require("uuid/v1");
-const Firestore = require("firestore");
+// const Firestore = require("firestore");
 
 export const registerPurchaseOrder = functions.https.onRequest(
   async (request, response) => {
@@ -30,7 +30,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
       await writeToBFN();
     }
     return null;
-    
+
     function validate() {
       if (!request.body) {
         console.log("ERROR - request has no body");
