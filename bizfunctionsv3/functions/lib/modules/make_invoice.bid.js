@@ -134,7 +134,8 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                 console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
             }
             await checkTotalBids(docID, offerId);
-            console.log('Everything seems OK. Bye!');
+            await sendMessageToTopic(mdata);
+            console.log("Everything seems OK. InvoiceBid done!");
             response.status(200).send(mdata);
         }
         catch (e) {
@@ -142,6 +143,32 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             console.log(e);
             handleError(e);
         }
+    }
+    async function sendMessageToTopic(mdata) {
+        const topic = `invoiceBids`;
+        const payload = {
+            data: {
+                messageType: "INVOICE_BID",
+                json: JSON.stringify(mdata)
+            },
+            notification: {
+                title: "Invoice Bid",
+                body: "Invoice Bid from " +
+                    mdata.investorName +
+                    " amount: " +
+                    mdata.amount
+            }
+        };
+        if (mdata.supplierFCMToken) {
+            console.log("sending invoice bid data to supplier device: " +
+                mdata.supplierFCMToken +
+                " " +
+                JSON.stringify(mdata));
+            const devices = [mdata.supplierFCMToken];
+            await admin.messaging().sendToDevice(devices, payload);
+        }
+        console.log("sending invoice bid data to topic: " + topic);
+        return await admin.messaging().sendToTopic(topic, payload);
     }
     async function checkTotalBids(offerDocID, offerId) {
         console.log(`############ checkTotalBids ......... offerDocID: ${offerDocID}`);
@@ -181,7 +208,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                     console.log(`####### Functions response status: ##########: ${mresponse.status}`);
                     if (mresponse.status === 200) {
                         console.log("************* Offer closed by function call from this function");
-                        return "ok";
+                        return null;
                     }
                     else {
                         console.log("******** BFN ERROR ###########");
@@ -195,6 +222,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             }
             else {
                 console.log(`# NOT closing offer, reservePercent == ${total} %`);
+                return null;
             }
         }
         catch (e) {

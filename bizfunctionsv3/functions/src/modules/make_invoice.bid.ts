@@ -73,7 +73,7 @@ export const makeInvoiceBid = functions.https.onRequest(
         console.log(
           "--------------- axios: BFN blockchain problem -----------------"
         );
-        handleError(error)
+        handleError(error);
       }
     }
 
@@ -137,7 +137,7 @@ export const makeInvoiceBid = functions.https.onRequest(
         });
 
         if (docID) {
-          let ref2
+          let ref2;
           ref2 = await admin
             .firestore()
             .collection("invoiceOffers")
@@ -147,21 +147,51 @@ export const makeInvoiceBid = functions.https.onRequest(
             .catch(function(error) {
               console.log("Error writing Firestore document ");
               console.log(error);
-              handleError(error)
+              handleError(error);
             });
           console.log(
             `********** Data successfully written to Firestore! ${ref2.path}`
           );
         }
         await checkTotalBids(docID, offerId);
+        await sendMessageToTopic(mdata);
 
-        console.log('Everything seems OK. Bye!')
-        response.status(200).send(mdata)
+        console.log("Everything seems OK. InvoiceBid done!");
+        response.status(200).send(mdata);
       } catch (e) {
         console.log("##### ERROR, probably JSON data format related");
         console.log(e);
-        handleError(e)
+        handleError(e);
       }
+    }
+    async function sendMessageToTopic(mdata) {
+      const topic = `invoiceBids`;
+      const payload = {
+        data: {
+          messageType: "INVOICE_BID",
+          json: JSON.stringify(mdata)
+        },
+        notification: {
+          title: "Invoice Bid",
+          body:
+            "Invoice Bid from " +
+            mdata.investorName +
+            " amount: " +
+            mdata.amount
+        }
+      };
+      if (mdata.supplierFCMToken) {
+        console.log(
+          "sending invoice bid data to supplier device: " +
+            mdata.supplierFCMToken +
+            " " +
+            JSON.stringify(mdata)
+        );
+        const devices = [mdata.supplierFCMToken];
+        await admin.messaging().sendToDevice(devices, payload);
+      }
+      console.log("sending invoice bid data to topic: " + topic);
+      return await admin.messaging().sendToTopic(topic, payload);
     }
     async function checkTotalBids(offerDocID, offerId) {
       console.log(
@@ -209,23 +239,23 @@ export const makeInvoiceBid = functions.https.onRequest(
               console.log(
                 "************* Offer closed by function call from this function"
               );
-              return "ok";
+              return null;
             } else {
               console.log("******** BFN ERROR ###########");
-             handleError(mresponse)
-              
+              handleError(mresponse);
             }
           } catch (error) {
-            console.log( "------ axios: BFN blockchain problem -----" );
-            handleError(error)
+            console.log("------ axios: BFN blockchain problem -----");
+            handleError(error);
           }
         } else {
           console.log(`# NOT closing offer, reservePercent == ${total} %`);
+          return null;
         }
       } catch (e) {
         console.log("-- Firestore: Check Totals PROBLEM -----");
         console.log(e);
-        handleError(e)
+        handleError(e);
       }
       return null;
     }

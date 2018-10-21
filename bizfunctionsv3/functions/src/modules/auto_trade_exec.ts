@@ -28,11 +28,21 @@ export const executeAutoTrades = functions
     const profiles: Data.InvestorProfile[] = [];
     const offers: Data.Offer[] = [];
     const units: Data.ExecutionUnit[] = [];
+    const summary = {
+      totalValidBids: 0,
+      totalOffers: 0,
+      totalInvalidBids: 0,
+      possibleAmount: 0.0,
+      totalAmount: 0.0,
+      elapsedSeconds: 0.0,
+      closedOffers: 0,
+      dateStarted: new Date().toISOString(),
+      dateEnded: null,
+     
+    };
 
-    let possibleAmount = 0.0;
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
-    const startDate = new Date().toISOString();
     let bidCount = 0;
 
     await startAutoTradeSession();
@@ -40,9 +50,7 @@ export const executeAutoTrades = functions
 
     async function startAutoTradeSession() {
       const date = new Date().toISOString();
-      console.log(
-        `################### starting AutoTrade Session ########### ${date}`
-      );
+      console.log(`### starting AutoTrade Session ########### ${date}`);
       await writeAutoTradeStart();
       const result = await getData();
       if (result > 0) {
@@ -53,28 +61,19 @@ export const executeAutoTrades = functions
           "################ Done. Auto Trade Session stopped - No open offers ############"
         );
       }
-      return finishAutoTrades()
+      return finishAutoTrades();
     }
 
     async function finishAutoTrades() {
+      const now: number = new Date().getTime();
+      const elapsed = (now - startTime) / 1000;
+      summary.elapsedSeconds = elapsed;
       await updateAutoTradeStart();
-      if (bidCount === 0) {
-        return response
-          .status(200)
-          .send(`\n\nAuto Trading Session:  No open offers. Quitting\n\n`);
-      } else {
-        const now: number = new Date().getTime();
-        const elapsed = (now - startTime) / 1000;
-        console.log(
-          `Auto Trading Session complete. Be Happy! execution units: ${
-            units.length
-          } bidCount: ${bidCount}`
-        );
-        return response.status(200).send(`Auto Trading Session: Processed 
-                        ${bidCount} of possible ${
-          units.length
-        } trades. Elapsed seconds: ${elapsed}\n`);
-      }
+
+      console.log(summary);
+      console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
+            ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
+      return response.status(200).send(summary);
     }
     async function validateBids() {
       const promises = [];
@@ -126,6 +125,7 @@ export const executeAutoTrades = functions
         return await writeBidToBFN(unit);
       } else {
         //this offer has not met all validation requirements
+        summary.totalInvalidBids++;
         console.log(
           `---- Offer validation failed, bid ignored. offerAmount: ${
             unit.offer.offerAmount
@@ -218,16 +218,15 @@ export const executeAutoTrades = functions
           console.log(e);
           handleError(e);
         });
-      const invRef = await admin
+      let invRequestSnapshot;
+      invRequestSnapshot = await admin
         .firestore()
         .collection("investors")
         .where("participantId", "==", bid.investor.split("#")[1])
         .get();
-      const investorDocId = invRef.docs[0].id;
-      const xref = await admin
-        .firestore()
-        .collection("investors")
-        .doc(investorDocId)
+      const investorRef = invRequestSnapshot.docs[0].ref;
+      let xref;
+      xref = await investorRef
         .collection("invoiceBids")
         .add(bid)
         .catch(e => {
@@ -237,17 +236,47 @@ export const executeAutoTrades = functions
       console.log(
         `++++++++ invoiceBid written to investor invoiceBids on Firestore: ${
           bid.investorName
-        } for amount: ${bid.amount} ref: ${xref}`
+        } for amount: ${bid.amount} ref: ${xref.path}`
       );
       console.log(
         `Auto Trading Session: processed ${bidCount} bids of a possible ${
           units.length
         }, date: ${new Date().toISOString()}`
       );
-
+      summary.totalAmount += bid.amount;
+      summary.totalValidBids++;
+      await sendMessageToTopic(bid)
       return await closeOfferOnBFN(offerId);
     }
-
+    async function sendMessageToTopic(mdata) {
+      const topic = `invoiceBids`;
+      const payload = {
+        data: {
+          messageType: "INVOICE_BID",
+          json: JSON.stringify(mdata)
+        },
+        notification: {
+          title: "Invoice Bid",
+          body:
+            "Invoice Bid from " +
+            mdata.investorName +
+            " amount: " +
+            mdata.amount
+        }
+      };
+      if (mdata.supplierFCMToken) {
+        console.log(
+          "sending invoice bid data to supplier device: " +
+            mdata.supplierFCMToken +
+            " " +
+            JSON.stringify(mdata)
+        );
+        const devices = [mdata.supplierFCMToken];
+        await admin.messaging().sendToDevice(devices, payload);
+      }
+      console.log("sending invoice bid data to topic: " + topic);
+      return await admin.messaging().sendToTopic(topic, payload);
+    }
     //close Offer on BFN
     async function closeOfferOnBFN(offerId) {
       let url;
@@ -313,6 +342,7 @@ export const executeAutoTrades = functions
         console.log(
           `################### closeOfferOnFirestore, closed offerId :${offerId}`
         );
+        summary.closedOffers++;
         bidCount++;
         return m;
       } else {
@@ -331,6 +361,8 @@ export const executeAutoTrades = functions
           console.log(e);
           handleError(e);
         });
+
+      summary.totalOffers = qso.docs.length;
       qso.docs.forEach(doc => {
         const data = doc.data();
         const offer: Data.Offer = new Data.Offer();
@@ -359,6 +391,9 @@ export const executeAutoTrades = functions
         console.log("No open offers found. quitting ...");
         return 0;
       }
+      offers.map(offer => {
+        summary.possibleAmount += offer.offerAmount;
+      });
 
       ///////
       let qs;
@@ -468,27 +503,12 @@ export const executeAutoTrades = functions
       console.log(
         "################### writeAutoTradeStart II ######################"
       );
-
-      units.forEach(u => {
-        possibleAmount += u.offer.offerAmount;
-      });
-      const mStart = {
-        dateStarted: new Date().toISOString(),
-        possibleAmount: possibleAmount,
-        possibleTrades: units.length
-      };
-
-      console.log(
-        `*********** autoTradeStart possibleAmount: ${
-          mStart.possibleAmount
-        } possibleTrades: ${mStart.possibleTrades}`
-      );
-
+  
       await admin
         .firestore()
         .collection("autoTradeStarts")
         .doc(startKey)
-        .set(mStart)
+        .set(summary)
         .catch(e => {
           console.error(e);
           handleError(e);
@@ -502,38 +522,32 @@ export const executeAutoTrades = functions
       console.log(
         "################### updateAutoTradeStart ######################"
       );
-      const endTime = new Date().getTime();
-      const elapsed = (endTime - startTime) / 1000;
-      const mStart = {
-        dateStarted: startDate,
-        dateEnded: new Date().toISOString(),
-        possibleAmount: possibleAmount,
-        possibleTrades: units.length,
-        elapsedSeconds: elapsed,
-        bidCount: bidCount
-      };
-      const mf = await admin
+      summary.dateEnded = new Date().toISOString()
+      let mf;
+      mf = await admin
         .firestore()
         .collection("autoTradeStarts")
         .doc(startKey)
-        .set(mStart)
+        .set(summary)
         .catch(e => {
           console.log(e);
           handleError(e);
         });
-      console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
-            ${elapsed} seconds. We are HAPPY, Houston!!`);
-      response.status(200).send("Auto Trading Complete");
+      
       return mf;
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+      const now: number = new Date().getTime();
+      const elapsed = (now - startTime) / 1000;
+      summary.elapsedSeconds = elapsed;
       try {
         const payload = {
           name: "AutoTradeExecution",
           message: message,
           data: request.body.data,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          summary: summary
         };
         console.log(payload);
         response.status(400).send(payload);

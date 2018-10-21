@@ -52,7 +52,6 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
         console.log("####### --- writing Offer to BFN: ---> " + url);
         data["offerId"] = uuid();
-        // Send a POST request to BFN
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             console.log(`####### BFN response status: ##########: ${mresponse.status}`);
@@ -65,7 +64,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
             }
         }
         catch (error) {
-            console.log("--------------- axios: BFN blockchain problem -----------------");
+            console.log("-- axios: BFN blockchain problem ---");
             handleError(error);
         }
     }
@@ -84,7 +83,8 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 console.log(error);
                 handleError(error);
             });
-            console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
+            console.log(`**Data written to Firestore! ${ref1.path}`);
+            response.status(200).send(mdata);
             return ref1;
         }
         catch (e) {

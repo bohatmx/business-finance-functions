@@ -55,10 +55,8 @@ export const makeOffer = functions.https.onRequest(
       } else {
         url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
       }
-
       console.log("####### --- writing Offer to BFN: ---> " + url);
       data["offerId"] = uuid();
-      // Send a POST request to BFN
       try {
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         console.log(
@@ -71,9 +69,7 @@ export const makeOffer = functions.https.onRequest(
           handleError(mresponse);
         }
       } catch (error) {
-        console.log(
-          "--------------- axios: BFN blockchain problem -----------------"
-        );
+        console.log("-- axios: BFN blockchain problem ---");
         handleError(error);
       }
     }
@@ -95,10 +91,8 @@ export const makeOffer = functions.https.onRequest(
             console.log(error);
             handleError(error);
           });
-        console.log(
-          `********** Data successfully written to Firestore! ${ref1.path}`
-        );
-
+        console.log(`**Data written to Firestore! ${ref1.path}`);
+        response.status(200).send(mdata)
         return ref1;
       } catch (e) {
         console.log("##### ERROR, probably JSON data format related");
