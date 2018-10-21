@@ -24,10 +24,10 @@ export const executeAutoTrades = functions
     console.log(`##### Incoming debug ${request.body.debug}`);
     const debug = request.body.debug;
 
-    const orders: Data.AutoTradeOrder[] = [];
-    const profiles: Data.InvestorProfile[] = [];
-    const offers: Data.Offer[] = [];
-    const units: Data.ExecutionUnit[] = [];
+    let orders: Data.AutoTradeOrder[] = [];
+    let profiles: Data.InvestorProfile[] = [];
+    let offers: Data.Offer[] = [];
+    let units: Data.ExecutionUnit[] = [];
     const summary = {
       totalValidBids: 0,
       totalOffers: 0,
@@ -43,6 +43,7 @@ export const executeAutoTrades = functions
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
     let bidCount = 0;
+    let execCount = 0;
 
     await startAutoTradeSession();
     return null;
@@ -55,14 +56,27 @@ export const executeAutoTrades = functions
       if (result > 0) {
         buildUnits();
         await validateBids();
-      } else {
-        console.log(
-          "################ Done. Auto Trade Session stopped - No open offers ############"
-        );
       }
-      return finishAutoTrades();
+      console.log("check if invalid bids and run exec again");
+      console.log(summary);
+      if (summary.totalInvalidBids > 0) {
+        if (execCount < 3) {
+          execCount++;
+          console.log(
+            `*** starting new execution after finding invalid bids ${
+              summary.totalInvalidBids
+            } exec count: ${execCount}`
+          );
+          summary.totalInvalidBids = 0;
+          await startAutoTradeSession();
+        } else {
+          return finishAutoTrades();
+        }
+      } else {
+        return finishAutoTrades();
+      }
+      return null;
     }
-
     async function finishAutoTrades() {
       const now: number = new Date().getTime();
       const elapsed = (now - startTime) / 1000;
@@ -83,7 +97,6 @@ export const executeAutoTrades = functions
       console.log(`######## validateBids complete. ...closing up!`);
       return 0;
     }
-
     async function validateBid(unit) {
       let validInvoiceAmount = false;
       let validSec = false;
@@ -147,7 +160,6 @@ export const executeAutoTrades = functions
         return 0;
       }
     }
-
     async function writeBidToBFN(unit) {
       //get existing invoice bids for this offer
       const colRef = admin.firestore().collection("invoiceOffers");
@@ -290,7 +302,6 @@ export const executeAutoTrades = functions
       console.log("sending invoice bid data to topic: " + topic);
       return await admin.messaging().sendToTopic(topic, payload);
     }
-    //close Offer on BFN
     async function closeOfferOnBFN(offerId) {
       let url;
       if (debug === "true") {
@@ -301,7 +312,7 @@ export const executeAutoTrades = functions
 
       const map = new Map();
       map["offerId"] = offerId;
-      
+
       const blockchainResponse = await BFNComms.AxiosComms.execute(
         url,
         map
@@ -316,7 +327,6 @@ export const executeAutoTrades = functions
         handleError(blockchainResponse);
       }
     }
-
     async function closeOfferOnFirestore(offerId) {
       let mdocID;
       let mData;
@@ -374,6 +384,7 @@ export const executeAutoTrades = functions
         });
 
       summary.totalOffers = qso.docs.length;
+      offers = [];
       qso.docs.forEach(doc => {
         const data = doc.data();
         const offer: Data.Offer = new Data.Offer();
@@ -405,7 +416,7 @@ export const executeAutoTrades = functions
       offers.map(offer => {
         summary.possibleAmount += offer.offerAmount;
       });
-
+      shuffleOffers();
       ///////
       let qs;
       qs = await admin
@@ -417,6 +428,7 @@ export const executeAutoTrades = functions
           console.log(e);
           handleError(e);
         });
+      orders = [];
       qs.docs.forEach(doc => {
         const data = doc.data();
         const order: Data.AutoTradeOrder = new Data.AutoTradeOrder();
@@ -437,6 +449,7 @@ export const executeAutoTrades = functions
           }`
         );
       });
+      shuffleOrders();
 
       let qsp;
       qsp = await admin
@@ -447,6 +460,7 @@ export const executeAutoTrades = functions
           console.log(e);
           handleError(e);
         });
+      profiles = [];
       qsp.docs.forEach(doc => {
         const data = doc.data();
         const profile: Data.InvestorProfile = new Data.InvestorProfile();
@@ -474,6 +488,7 @@ export const executeAutoTrades = functions
       console.log("################### buildUnits ######################");
       let orderIndex = 0;
       let offerIndex = 0;
+      units = []
       do {
         console.log(`+++ buildUnits, offer, supplier: ${
           offers[offerIndex].supplierName
@@ -497,24 +512,31 @@ export const executeAutoTrades = functions
         offerIndex++;
       } while (offerIndex < offers.length);
 
-      shuffleOffers(units);
       console.log(
         `++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${
           units.length
         }, offers assigned: ${offerIndex}`
       );
     }
-    function shuffleOffers(offerUnits) {
-      for (let i = offerUnits.length - 1; i > 0; i--) {
+    function shuffleOrders() {
+      console.log(orders);
+      for (let i = orders.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [offerUnits[i], offerUnits[j]] = [offerUnits[j], offerUnits[i]];
+        [orders[i], orders[j]] = [orders[j], orders[i]];
       }
+      console.log("########## shuffled orders ........");
+      console.log(orders);
+    }
+    function shuffleOffers() {
+      console.log(offers);
+      for (let i = offers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [offers[i], offers[j]] = [offers[j], offers[i]];
+      }
+      console.log("########## shuffled offers ........");
+      console.log(offers);
     }
     async function writeAutoTradeStart() {
-      console.log(
-        "################### writeAutoTradeStart II ######################"
-      );
-
       await admin
         .firestore()
         .collection("autoTradeStarts")
@@ -530,9 +552,6 @@ export const executeAutoTrades = functions
       return 0;
     }
     async function updateAutoTradeStart() {
-      console.log(
-        "################### updateAutoTradeStart ######################"
-      );
       summary.dateEnded = new Date().toISOString();
       let mf;
       mf = await admin
@@ -544,7 +563,9 @@ export const executeAutoTrades = functions
           console.log(e);
           handleError(e);
         });
-
+      console.log(
+        "################### updateAutoTradeStart ######################"
+      );
       return mf;
     }
     function handleError(message) {
