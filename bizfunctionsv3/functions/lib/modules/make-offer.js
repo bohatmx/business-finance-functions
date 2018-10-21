@@ -41,7 +41,6 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
         return true;
     }
-    //add customer to bfn blockchain
     async function writeToBFN() {
         let url;
         if (debug) {
@@ -50,28 +49,24 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log("####### --- writing Offer to BFN: ---> " + url);
-        data["offerId"] = uuid();
+        if (!data.offerId) {
+            data["offerId"] = uuid();
+        }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`);
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data);
             }
             else {
-                console.log("******** BFN ERROR ###########");
+                console.log(`** BFN ERROR ## ${mresponse.data}`);
                 handleError(mresponse);
             }
         }
         catch (error) {
-            console.log("-- axios: BFN blockchain problem ---");
             handleError(error);
         }
     }
     async function writeToFirestore(mdata) {
-        console.log("################### writeToFirestore, Offer data from BFN:\n " +
-            JSON.stringify(mdata));
-        // Add a new data to Firestore collection
         try {
             let ref1;
             ref1 = await admin
@@ -79,19 +74,33 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 .collection("invoiceOffers")
                 .add(mdata)
                 .catch(function (error) {
-                console.log("Error getting Firestore document ");
                 console.log(error);
                 handleError(error);
             });
-            console.log(`**Data written to Firestore! ${ref1.path}`);
+            console.log(`** Data written to Firestore! ${ref1.path}`);
+            await sendMessageToTopic(mdata);
             response.status(200).send(mdata);
             return ref1;
         }
         catch (e) {
-            console.log("##### ERROR, probably JSON data format related");
             console.log(e);
             handleError(e);
         }
+    }
+    async function sendMessageToTopic(mdata) {
+        const topic = `offers`;
+        const payload = {
+            data: {
+                messageType: "OFFER",
+                json: JSON.stringify(mdata)
+            },
+            notification: {
+                title: "BFN Offer",
+                body: "Offer from " + mdata.supplierName + " amount: " + mdata.offerAmount
+            }
+        };
+        console.log("sending Offer data to topic: " + topic);
+        return await admin.messaging().sendToTopic(topic, payload);
     }
     function handleError(message) {
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);
@@ -107,6 +116,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
+            response.status(400).send(message);
         }
     }
 });

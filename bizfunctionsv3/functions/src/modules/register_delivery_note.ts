@@ -22,16 +22,26 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
 
     const apiSuffix = 'RegisterDeliveryNote'
 
-    const ref = await writeToBFN()
-    if (ref) {
-        response.status(200).send(ref.path);
-    } else {
-        response.sendStatus(400)
+    if (validate() === true) {
+        await writeToBFN()
     }
-
+  
     return null
-
-    //add customer to bfn blockchain
+    function validate() {
+      if (!request.body) {
+        console.log("ERROR - request has no body");
+        return response.status(400).send("request has no body");
+      }
+    //   if (!request.body.debug) {
+    //     console.log("ERROR - request has no debug flag");
+    //     return response.status(400).send(" request has no debug flag");
+    //   }
+      if (!request.body.data) {
+        console.log("ERROR - request has no data");
+        return response.status(400).send(" request has no data");
+      }
+      return true;
+    }
     async function writeToBFN() {
         let url;
         if (debug) {
@@ -39,42 +49,37 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
         } else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix
         }
-
-        console.log('####### --- writing Del Note to BFN: ---> ' + url)
-        data['deliveryNoteId'] = uuid()
-        // Send a POST request to BFN
+        if (!data.deliveryNoteId) {
+            data['deliveryNoteId'] = uuid()
+        }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url,data)
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`)
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data)
             } else {
-                console.log('******** BFN ERROR ###########')
-                throw new Error(`RegisterDeliveryNote failed: ${mresponse.status}`)
+                console.log(`** BFN ERROR ## ${mresponse.data}`)
+                handleError(mresponse)
             }
 
         } catch (error) {
             console.log('--------------- axios: BFN blockchain problem -----------------')
             console.log(error);
-            throw new Error(`RegisterDeliveryNote failed: ${error}`)
+            handleError(error)
         }
 
     }
-
     async function writeToFirestore(mdata) {
-        console.log('################### writeToFirestore, PO data from BFN:\n '
-            + JSON.stringify(mdata))
-        // Add a new data to Firestore collection 
+        
         try {
             let mdocID;
             if (!mdata.govtDocumentRef) {
                 const key = mdata.govtEntity.split('#')[1]
-                const snapshot = await admin.firestore()
+                let snapshot
+                 snapshot = await admin.firestore()
                     .collection('govtEntities').where('participantId', '==', key)
                     .get().catch(function (error) {
-                        console.log("Error getting Firestore document ");
                         console.log(error)
-                        throw new Error(`RegisterDeliveryNote failed: ${error}`)
+                        handleError(error)
                     });
                 snapshot.forEach(doc => {
                     mdocID = doc.id
@@ -89,22 +94,21 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
                     .collection('govtEntities').doc(mdocID)
                     .collection('deliveryNotes').add(mdata)
                     .catch(function (error) {
-                        console.log("Error getting Firestore document ");
                         console.log(error)
-                        throw new Error(`RegisterDeliveryNote failed: ${error}`)
+                        handleError(error)
                     });
-                console.log(`********** Data successfully written to Firestore! ${ref1.path}`)
+                console.log(`*** Data successfully written to Firestore! ${ref1.path}`)
             }
 
             let docID;
             if (!mdata.supplierDocumentRef) {
                 const key = mdata.supplier.split('#')[1]
-                const snapshot = await admin.firestore()
+                let snapshot
+                 snapshot = await admin.firestore()
                     .collection('suppliers').where('participantId', '==', key)
                     .get().catch(function (error) {
-                        console.log("Error writing Firestore document ");
                         console.log(error)
-                        throw new Error(`RegisterDeliveryNote failed: ${error}`)
+                         handleError(error)
                     });
                 snapshot.forEach(doc => {
                     docID = doc.id
@@ -114,22 +118,58 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
                 docID = mdata.supplierDocumentRef
             }
             if (docID) {
-                const ref2 = await admin.firestore()
+                let ref2
+                 ref2 = await admin.firestore()
                     .collection('suppliers').doc(docID)
                     .collection('deliveryNotes').add(mdata)
                     .catch(function (error) {
-                        console.log("Error writing Firestore document ");
                         console.log(error)
-                        throw new Error(`RegisterDeliveryNote failed: ${error}`)
+                         handleError(error)
                     });
-                console.log(`********** Data successfully written to Firestore! ${ref2.path}`)
+                console.log(`*** Data successfully written to Firestore! ${ref2.path}`)
             }
+            await sendMessageToTopic(mdata)
+            console.log('Delivery Note processed good. OK!')
+            response.status(200).send(mdata)
             return ref1
         } catch (e) {
-            console.log('##### ERROR, probably JSON data format related')
             console.log(e)
-            throw new Error(`RegisterDeliveryNote failed: ${e}`)
+             handleError(e)
         }
 
+    }
+    async function sendMessageToTopic(mdata) {
+      const topic = `deliveryNotes`;
+      const payload = {
+        data: {
+          messageType: "DELIVERY_NOTE",
+          json: JSON.stringify(mdata)
+        },
+        notification: {
+          title: "Delivery Note",
+          body:
+            "Delivery Note from " +
+            mdata.supplierName 
+        }
+      };
+      
+      console.log("sending delivery note data to topic: " + topic);
+      return await admin.messaging().sendToTopic(topic, payload);
+    }
+    function handleError(message) {
+      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
+      try {
+        const payload = {
+          name: apiSuffix,
+          message: message,
+          data: request.body.data,
+          date: new Date().toISOString()
+        };
+        console.log(payload);
+        response.status(400).send(payload);
+      } catch (e) {
+        console.log("possible error propagation/cascade here. ignored");
+        response.status(400).send(message);
+      }
     }
 });

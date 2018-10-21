@@ -36,7 +36,7 @@ exports.addData = functions
         date: new Date().toISOString()
     };
     console.log(result);
-    console.log('#### Everything seems A-OK. Sending result and status code 200');
+    console.log("#### Everything seems A-OK. Sending result and status code 200");
     response.status(200).send(result);
     return null;
     //add customer to bfn blockchain
@@ -90,14 +90,19 @@ exports.addData = functions
     }
     function handleError(message) {
         console.log("-------- ERROR ------ sending " + message);
-        const payload = {
-            message: message,
-            data: request.body.data,
-            apiSuffix: request.body.apiSuffix,
-            date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
+        try {
+            const payload = {
+                message: message,
+                data: request.body.data,
+                apiSuffix: request.body.apiSuffix,
+                date: new Date().toISOString()
+            };
+            console.log(payload);
+            response.status(400).send(payload);
+        }
+        catch (e) {
+            response.status(400).send(message);
+        }
     }
 });
 //# sourceMappingURL=add-data.js.map

@@ -22,7 +22,7 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
     const debug = request.body.debug;
     const data = request.body.data;
     const apiSuffix = "RegisterPurchaseOrder";
-    if (validate()) {
+    if (validate() === true) {
         await writeToBFN();
     }
     return null;
@@ -41,7 +41,6 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
         }
         return true;
     }
-    //add customer to bfn blockchain
     async function writeToBFN() {
         let url;
         if (debug) {
@@ -50,22 +49,19 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log("####### --- writing PO to BFN: ---> " + url);
-        data["purchaseOrderId"] = uuid();
-        // Send a POST request to BFN
+        if (!data.purchaseOrderId) {
+            data["purchaseOrderId"] = uuid();
+        }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
-            console.log(`####### BFN response status: ##########: ${mresponse.status}`);
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data);
             }
             else {
-                console.log("******** BFN ERROR ###########");
                 handleError(mresponse);
             }
         }
         catch (error) {
-            console.log("--------------- axios: BFN blockchain problem -----------------");
             console.log(error);
             handleError(error);
         }
@@ -84,7 +80,6 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                     .where("participantId", "==", key)
                     .get()
                     .catch(function (error) {
-                    console.log("Error getting Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
@@ -105,11 +100,10 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                     .collection("purchaseOrders")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error getting Firestore document ");
                     console.log(error);
                     handleError(error);
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
+                console.log(`*** Data successfully written to Firestore! ${ref1.path}`);
             }
             let docID;
             if (!mdata.supplierDocumentRef) {
@@ -120,7 +114,6 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                     .where("participantId", "==", key)
                     .get()
                     .catch(function (error) {
-                    console.log("Error writing Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
@@ -140,17 +133,16 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                     .collection("purchaseOrders")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error writing Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
+                console.log(`*** Data successfully written to Firestore! ${ref2.path}`);
             }
+            console.log('Purchase Order processed OK... done!');
             response.status(200).send(mdata);
         }
         catch (e) {
-            console.log("##### ERROR, probably JSON data format related");
             console.log(e);
             handleError(e);
         }
@@ -169,6 +161,7 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
+            response.status(400).send(message);
         }
     }
 });

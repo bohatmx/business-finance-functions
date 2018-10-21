@@ -385,17 +385,21 @@ export const addParticipant = functions
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      isError = true;
-      const payload = {
-        name: apiSuffix,
-        result: result,
-        message: message,
-        data: request.body.data,
-        user: request.body.user,
-        apiSuffix: request.body.apiSuffix,
-        date: new Date().toISOString()
-      };
-      console.log(payload);
-      response.status(400).send(payload);
+      try {
+        isError = true;
+        const payload = {
+          name: apiSuffix,
+          result: result,
+          message: message,
+          data: request.body.data,
+          user: request.body.user,
+          apiSuffix: request.body.apiSuffix,
+          date: new Date().toISOString()
+        };
+        console.log(payload);
+        response.status(400).send(payload);
+      } catch (e) {
+        response.status(400).send(message);
+      }
     }
   });

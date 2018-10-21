@@ -22,7 +22,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
     const debug = request.body.debug;
     const data = request.body.data;
     const apiSuffix = "MakeInvoiceBid";
-    if (validate()) {
+    if (validate() === true) {
         await writeToBFN();
     }
     return null;
@@ -31,10 +31,10 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             console.log("ERROR - request has no body");
             return response.status(400).send("request has no body");
         }
-        if (!request.body.debug) {
-            console.log("ERROR - request has no debug flag");
-            return response.status(400).send(" request has no debug flag");
-        }
+        // if (!request.body.debug) {
+        //   console.log("ERROR - request has no debug flag");
+        //   return response.status(400).send(" request has no debug flag");
+        // }
         if (!request.body.data) {
             console.log("ERROR - request has no data");
             return response.status(400).send(" request has no data");
@@ -50,28 +50,24 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log("####### --- writing InvoiceBid to BFN: ---> " + url);
-        data["invoiceBidId"] = uuid();
-        // Send a POST request to BFN
+        if (!data.invoiceBidId) {
+            data["invoiceBidId"] = uuid();
+        }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data);
             }
             else {
-                console.log("******** BFN ERROR ###########");
-                throw new Error(`MakeInvoiceBid failed in BFN status: ${mresponse.status}`);
+                console.log(`** BFN ERROR ## ${mresponse.data}`);
+                handleError(mresponse);
             }
         }
         catch (error) {
-            console.log("--------------- axios: BFN blockchain problem -----------------");
             handleError(error);
         }
     }
     async function writeToFirestore(mdata) {
-        console.log("################### writeToFirestore, PO data from BFN:\n " +
-            JSON.stringify(mdata));
-        // Add a new data to Firestore collection
         try {
             let mdocID;
             const key = mdata.investor.split("#")[1];
@@ -81,7 +77,6 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                 .where("participantId", "==", key)
                 .get()
                 .catch(function (error) {
-                console.log("Error getting Firestore document ");
                 console.log(error);
                 return null;
             });
@@ -97,23 +92,22 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                     .collection("invoiceBids")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error getting Firestore document ");
                     console.log(error);
                     throw new Error(`MakeInvoiceBid failed in Firestore`);
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
+                console.log(`** Data successfully written to Firestore! ${ref1.path}`);
             }
             let docID;
             const offerId = mdata.offer.split("#")[1];
-            const msnapshot = await admin
+            let msnapshot;
+            msnapshot = await admin
                 .firestore()
                 .collection("invoiceOffers")
                 .where("offerId", "==", offerId)
                 .get()
                 .catch(function (error) {
-                console.log("Error writing Firestore document ");
                 console.log(error);
-                throw new Error(`MakeInvoiceBid failed in BFN status: ${error}`);
+                handleError(error);
             });
             msnapshot.forEach(doc => {
                 docID = doc.id;
@@ -127,11 +121,10 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                     .collection("invoiceBids")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error writing Firestore document ");
                     console.log(error);
                     handleError(error);
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
+                console.log(`** Data successfully written to Firestore! ${ref2.path}`);
             }
             await checkTotalBids(docID, offerId);
             await sendMessageToTopic(mdata);
@@ -139,7 +132,6 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             response.status(200).send(mdata);
         }
         catch (e) {
-            console.log("##### ERROR, probably JSON data format related");
             console.log(e);
             handleError(e);
         }

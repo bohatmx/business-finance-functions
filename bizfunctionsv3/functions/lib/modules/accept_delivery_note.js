@@ -22,7 +22,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
     const debug = request.body.debug;
     const data = request.body.data;
     const apiSuffix = "AcceptDelivery";
-    if (validate()) {
+    if (validate() === true) {
         await writeToBFN();
     }
     return null;
@@ -31,17 +31,16 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             console.log("ERROR - request has no body");
             return response.status(400).send("request has no body");
         }
-        if (!request.body.debug) {
-            console.log("ERROR - request has no debug flag");
-            return response.status(400).send(" request has no debug flag");
-        }
+        // if (!request.body.debug) {
+        //   console.log("ERROR - request has no debug flag");
+        //   return response.status(400).send(" request has no debug flag");
+        // }
         if (!request.body.data) {
             console.log("ERROR - request has no data");
             return response.status(400).send(" request has no data");
         }
         return true;
     }
-    //add customer to bfn blockchain
     async function writeToBFN() {
         let url;
         if (debug) {
@@ -50,29 +49,25 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log("####### --- writing Delivery Acceptance to BFN: ---> " + url);
-        data["acceptanceId"] = uuid();
-        // Send a POST request to BFN
+        if (!data.acceptanceId) {
+            data["acceptanceId"] = uuid();
+        }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data);
             }
             else {
-                console.log("******** BFN ERROR ###########");
+                console.log(`** BFN ERROR ## ${mresponse.data}`);
                 handleError(mresponse);
             }
         }
         catch (error) {
-            console.log("--------------- axios: BFN blockchain problem -----------------");
             handleError(error);
             return null;
         }
     }
     async function writeToFirestore(mdata) {
-        console.log("################### writeToFirestore, data from BFN:\n " +
-            JSON.stringify(mdata));
-        // Add a new data to Firestore collection
         try {
             let mdocID;
             if (!mdata.govtDocumentRef) {
@@ -83,7 +78,6 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
                     .where("participantId", "==", key)
                     .get()
                     .catch(function (error) {
-                    console.log("Error getting Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
@@ -104,23 +98,22 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
                     .collection("deliveryAcceptances")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error getting Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref1.path}`);
+                console.log(`*** Data successfully written to Firestore! ${ref1.path}`);
             }
             let docID;
             if (!mdata.supplierDocumentRef) {
                 const key = mdata.supplier.split("#")[1];
-                const snapshot = await admin
+                let snapshot;
+                snapshot = await admin
                     .firestore()
                     .collection("suppliers")
                     .where("participantId", "==", key)
                     .get()
                     .catch(function (error) {
-                    console.log("Error writing Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
@@ -133,24 +126,24 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
                 docID = mdata.supplierDocumentRef;
             }
             if (docID) {
-                const ref2 = await admin
+                let ref2;
+                ref2 = await admin
                     .firestore()
                     .collection("suppliers")
                     .doc(docID)
                     .collection("deliveryAcceptances")
                     .add(mdata)
                     .catch(function (error) {
-                    console.log("Error writing Firestore document ");
                     console.log(error);
                     handleError(error);
                     return null;
                 });
-                console.log(`********** Data successfully written to Firestore! ${ref2.path}`);
+                console.log(`*** Data successfully written to Firestore! ${ref2.path}`);
             }
+            response.status(200).send(mdata);
             return ref1;
         }
         catch (e) {
-            console.log("##### ERROR, probably JSON data format related");
             console.log(e);
             handleError(e);
         }
@@ -169,6 +162,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
+            response.status(400).send(message);
         }
     }
 });

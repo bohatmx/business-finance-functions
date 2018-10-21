@@ -36,7 +36,7 @@ exports.executeAutoTrades = functions
         elapsedSeconds: 0.0,
         closedOffers: 0,
         dateStarted: new Date().toISOString(),
-        dateEnded: null,
+        dateEnded: null
     };
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
@@ -77,8 +77,6 @@ exports.executeAutoTrades = functions
         return 0;
     }
     async function validateBid(unit) {
-        console.log(`-----------> validating possible bid: ${unit.offer.offerAmount} for: 
-            ${unit.offer.supplierName} to ${unit.order.name}`);
         let validInvoiceAmount = false;
         let validSec = false;
         let validSupp = false;
@@ -86,14 +84,23 @@ exports.executeAutoTrades = functions
         let validMinimumDiscount = false;
         let validAccountBalance = false;
         // let total = 0.00;
-        if (unit.offer.discountPercent >= unit.profile.minimumDiscount) {
+        if (unit.offer.discountPercent > unit.profile.minimumDiscount ||
+            unit.offer.discountPercent === unit.profile.minimumDiscount) {
             validMinimumDiscount = true;
         }
-        if (unit.offer.offerAmount >= unit.profile.maxInvoiceAmount) {
+        else {
+            console.log(`-- validMinimumDiscount check failed. discount offered: ${unit.offer.discountPercent}% minimumDiscount required: ${unit.profile.minimumDiscount}%`);
+        }
+        //-- validInvoiceAmount check failed. offered: 73623 max required: 2500000
+        if (unit.offer.offerAmount < unit.profile.maxInvoiceAmount ||
+            unit.offer.offerAmount === unit.profile.maxInvoiceAmount) {
             validInvoiceAmount = true;
         }
+        else {
+            console.log(`-- validInvoiceAmount check failed. offered: ${unit.offer.offerAmount} max limit: ${unit.profile.maxInvoiceAmount}`);
+        }
         //TODO - add validation checks here
-        if (debug === "true") {
+        if (debug) {
             validSec = true;
             validAccountBalance = true;
             validSupp = true;
@@ -244,7 +251,6 @@ exports.executeAutoTrades = functions
         }
         const map = new Map();
         map["offerId"] = offerId;
-        console.log(`####### --- executing CloseOffer on BFN Blockchain: --- ####### ${url}`);
         const blockchainResponse = await BFNComms.AxiosComms.execute(url, map).catch(e => {
             handleError(e);
         });
@@ -466,6 +472,7 @@ exports.executeAutoTrades = functions
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
+            response.status(400).send(message);
         }
     }
 });

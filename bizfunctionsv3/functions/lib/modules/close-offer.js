@@ -41,7 +41,6 @@ exports.closeOffer = functions.https.onRequest(async (request, response) => {
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log(`####### --- executing CloseOffer on BFN Blockchain: --- ####### ${url}`);
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, map);
             if (mresponse.status === 200) {

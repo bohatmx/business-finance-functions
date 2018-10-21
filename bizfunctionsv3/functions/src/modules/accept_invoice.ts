@@ -48,7 +48,6 @@ export const acceptInvoice = functions.https.onRequest(
       }
       return true;
     }
-    //add customer to bfn blockchain
     async function writeToBFN() {
       let url;
       if (debug) {
@@ -57,33 +56,24 @@ export const acceptInvoice = functions.https.onRequest(
         url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
       }
 
-      console.log("####### --- writing Invoice Acceptance to BFN: ---> " + url);
-      data["acceptanceId"] = uuid();
+      if (!data.acceptanceId) {
+        data["acceptanceId"] = uuid();
+      }
       try {
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
-        console.log(
-          `####### BFN response status: ##########: ${mresponse.status}`
-        );
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
-          console.log("******** BFN ERROR ###########");
+          console.log(`* BFN ERROR ## ${mresponse.data}`);
           handleError(mresponse);
         }
       } catch (error) {
-        console.log(
-          "--------------- axios: BFN blockchain problem -----------------"
-        );
         handleError(error);
       }
     }
 
     async function writeToFirestore(mdata) {
-      console.log(
-        "################### writeToFirestore, PO data from BFN:\n " +
-          JSON.stringify(mdata)
-      );
-      // Add a new data to Firestore collection
+      
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {
@@ -94,7 +84,6 @@ export const acceptInvoice = functions.https.onRequest(
             .where("participantId", "==", key)
             .get()
             .catch(function(error) {
-              console.log("Error getting Firestore document ");
               console.log(error);
               handleError(error);
               return null;
@@ -114,12 +103,11 @@ export const acceptInvoice = functions.https.onRequest(
             .collection("invoiceAcceptances")
             .add(mdata)
             .catch(function(error) {
-              console.log("Error getting Firestore document ");
               console.log(error);
               handleError(error);
             });
           console.log(
-            `********** Data successfully written to Firestore! ${ref1.path}`
+            `** Data successfully written to Firestore! ${ref1.path}`
           );
         }
 
@@ -132,7 +120,6 @@ export const acceptInvoice = functions.https.onRequest(
             .where("participantId", "==", key)
             .get()
             .catch(function(error) {
-              console.log("Error writing Firestore document ");
               console.log(error);
               handleError(error);
               return null;
@@ -151,20 +138,18 @@ export const acceptInvoice = functions.https.onRequest(
             .collection("invoiceAcceptances")
             .add(mdata)
             .catch(function(error) {
-              console.log("Error writing Firestore document ");
               console.log(error);
               handleError(error);
               return null;
             });
           console.log(
-            `********** Data successfully written to Firestore! ${ref2.path}`
+            `** Data successfully written to Firestore! ${ref2.path}`
           );
         }
         console.log("Invoice accepted OK. Ciao!");
         await InvoiceUpdate.updateInvoice(mdata)
         response.status(200).send(mdata);
       } catch (e) {
-        console.log("##### ERROR, probably JSON data format related");
         console.log(e);
         handleError(e);
       }
@@ -184,6 +169,7 @@ export const acceptInvoice = functions.https.onRequest(
         response.status(400).send(payload);
       } catch (e) {
         console.log("possible error propagation/cascade here. ignored");
+        response.status(400).send(message);
       }
     }
   }
