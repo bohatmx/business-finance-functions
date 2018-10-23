@@ -92,7 +92,6 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 console.log(`*** Data written to Firestore suppliers/invoices ${ref3.patht}`);
                 await sendMessageToTopic(mdata);
                 await checkAutoAccept(mdata);
-                response.status(200).send("Invoice Registered");
             }
         }
         catch (e) {
@@ -133,16 +132,21 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 return await acceptInvoice(invoice);
             }
             else {
+                console.log('Customer has no autoAccept - send 200 with invoice');
+                response.status(200).send(invoice);
                 return null;
             }
         }
         else {
+            const msg = 'Customer record not found';
+            console.log(msg);
+            response.status(400).send(msg);
             return null;
         }
     }
     async function acceptInvoice(invoice) {
         console.log("#### accepting invoice ........");
-        const acc = {
+        const invoiceAcceptance = {
             acceptanceId: uuid(),
             supplierName: invoice.supplierName,
             customerName: invoice.customerName,
@@ -152,7 +156,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             govtEntity: invoice.govtEntity,
             supplierDocumentRef: invoice.supplierDocumentRef
         };
-        console.log(acc);
+        console.log(invoiceAcceptance);
         let url;
         const suffix = "AcceptInvoice";
         if (debug) {
@@ -162,7 +166,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             url = BFNConstants.Constants.RELEASE_URL + suffix;
         }
         try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url, acc);
+            const mresponse = await AxiosComms.AxiosComms.execute(url, invoiceAcceptance);
             if (mresponse.status === 200) {
                 let mRef;
                 mRef = await admin
@@ -170,13 +174,15 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .collection("suppliers")
                     .doc(invoice.supplierDocumentRef)
                     .collection("invoiceAcceptances")
-                    .add(acc)
+                    .add(mresponse.data)
                     .catch(function (error) {
                     console.log(error);
                     handleError(error);
                 });
                 console.log(`Firestore document added: ${mRef.path}`);
-                await InvoiceUpdate.updateInvoice(acc);
+                await InvoiceUpdate.updateInvoice(mresponse.data);
+                console.log('Customer has autoAccept == true, - send 201 with invoiceAcceptance');
+                response.status(201).send(invoice);
                 return null;
             }
             else {

@@ -103,11 +103,11 @@ export const addParticipant = functions
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
-          handleError("BFN failed to add data");
+          handleError(mresponse);
         }
       } catch (error) {
         console.log(error);
-        handleError("Error while calling BFN. failed to add data");
+        handleError(error);
       }
       return null;
     }
@@ -118,17 +118,15 @@ export const addParticipant = functions
           .collection(collectionName)
           .add(mdata)
           .then(nRef => {
-            console.log(
-              `********** Participant successfully written to Firestore! ${
-                nRef.path
-              }`
+            console.log(`*** Participant written to Firestore! ${
+                nRef.path}`
             );
             result.participantPath = nRef.path;
             return nRef.path;
           })
           .catch(function(error) {
             console.log(error);
-            handleError("Error writing Firestore participant document ");
+            handleError(error);
           });
       } catch (e) {
         console.log(e);
@@ -170,12 +168,12 @@ export const addParticipant = functions
                 })
                 .catch(e => {
                   console.log(e);
-                  handleError("Unable to add user to Firestore");
+                  handleError(e);
                 });
             })
             .catch(e => {
               console.log(e);
-              handleError(`failed to create Firebase Auth user ${e}`);
+              handleError(e);
             });
         } else {
           console.log("******** BFN ERROR ###########");
@@ -183,7 +181,7 @@ export const addParticipant = functions
         }
       } catch (error) {
         console.log(error);
-        handleError(`BFN Error: Failed to add user: ${error}`);
+        handleError(error);
       }
       return null;
     }
@@ -273,7 +271,7 @@ export const addParticipant = functions
         );
       } catch (e) {
         console.log(e);
-        handleError("Failed to create Stellar account");
+        handleError(e);
       }
       return null;
     }
@@ -327,7 +325,7 @@ export const addParticipant = functions
       } catch (error) {
         //something went boom!
         console.error(error);
-        handleError("Stellar wallet went boom!");
+        handleError(error);
       }
     }
     async function writeWalletToBFN(wallet) {
@@ -355,7 +353,7 @@ export const addParticipant = functions
         }
       } catch (error) {
         console.log(error);
-        handleError("Error while calling BFN. failed to add wallet");
+        handleError(error);
       }
       return null;
     }
@@ -379,7 +377,7 @@ export const addParticipant = functions
         })
         .catch(e => {
           console.log(e);
-          handleError(`Failed to add wallet to Firestore`);
+          handleError(e);
         });
       return null;
     }

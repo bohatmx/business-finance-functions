@@ -62,7 +62,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
-          handleError(mresponse);
+          handleError(`BFN fucked up. status: ${mresponse.status}`);
         }
       } catch (error) {
         console.log(error);
@@ -71,11 +71,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
     }
 
     async function writeToFirestore(mdata) {
-      console.log(
-        "################### writeToFirestore, PO data from BFN:\n " +
-          JSON.stringify(mdata)
-      );
-      // Add a new data to Firestore collection
+      
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {
@@ -149,7 +145,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
           );
         }
         console.log('Purchase Order processed OK... done!')
-        response.status(200).send(mdata);
+        response.send(mdata);
       } catch (e) {
         console.log(e);
         handleError(e);
@@ -168,7 +164,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         response.status(400).send(payload);
       } catch (e) {
         console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send(message);
+        response.status(400).send('Register PO failed');
       }
     }
   }
