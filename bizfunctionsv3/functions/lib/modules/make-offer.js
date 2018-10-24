@@ -79,12 +79,58 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
             });
             console.log(`** Data written to Firestore! ${ref1.path}`);
             await sendMessageToTopic(mdata);
+            await updateInvoice(mdata);
             response.status(200).send(mdata);
             return ref1;
         }
         catch (e) {
             console.log(e);
             handleError(e);
+        }
+    }
+    async function updateInvoice(offer) {
+        console.log("## update invoice isOnOffer will be set to true ....on Firestore!!");
+        let querySnapshot;
+        let invoice;
+        querySnapshot = await admin
+            .firestore()
+            .collection("suppliers")
+            .doc(offer.supplierDocumentRef)
+            .collection("invoices")
+            .where("invoiceId", "==", offer.invoice.split("#")[1])
+            .get();
+        if (querySnapshot.docs.length > 0) {
+            invoice = querySnapshot.docs[0].data();
+            invoice.isOnOffer = true;
+            await querySnapshot.docs[0].ref.set(invoice).catch(e => {
+                console.log(e);
+                handleError("Invoice(supplier) isOnOffer update failed");
+            });
+            console.log("Invoice updated (supplier), isOnOffer = true ..Firestore");
+        }
+        //
+        let querySnapshot2;
+        querySnapshot2 = await admin
+            .firestore()
+            .collection("govtEntities")
+            .where("participantId", "==", invoice.govtEntity.split("#")[1])
+            .get();
+        if (querySnapshot2.docs.length > 0) {
+            const customerRef = querySnapshot2.docs[0].ref;
+            const qs = await customerRef
+                .collection("invoices")
+                .where("invoiceId", "==", invoice.invoiceId)
+                .get()
+                .catch(e => {
+                console.log(e);
+                handleError("Invoice(customer) isOnOffer update failed");
+            });
+            if (qs.docs.length > 0) {
+                const inv = qs.docs[0].data();
+                inv.isOnOffer = true;
+                qs.docs[0].ref.set(inv);
+                console.log("Invoice updated (customer), isOnOffer = true ..Firestore");
+            }
         }
     }
     async function sendMessageToTopic(mdata) {

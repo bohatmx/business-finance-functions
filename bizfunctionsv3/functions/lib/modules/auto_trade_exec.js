@@ -12,7 +12,7 @@ const Data = require("../models/data");
 const uuid = require("uuid/v1");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
-    .runWith({ memory: "256MB", timeoutSeconds: 240 })
+    .runWith({ memory: "256MB", timeoutSeconds: 480 })
     .https.onRequest(async (request, response) => {
     // const firestore = new Firestore();
     // const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -27,6 +27,7 @@ exports.executeAutoTrades = functions
     let profiles = [];
     let offers = [];
     let units = [];
+    const wallets = [];
     const summary = {
         totalValidBids: 0,
         totalOffers: 0,
@@ -41,7 +42,6 @@ exports.executeAutoTrades = functions
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
     let bidCount = 0;
-    let execCount = 0;
     await startAutoTradeSession();
     return null;
     async function startAutoTradeSession() {
@@ -53,78 +53,142 @@ exports.executeAutoTrades = functions
             buildUnits();
             await validateBids();
         }
-        console.log("check if invalid bids and run exec again");
         console.log(summary);
-        if (summary.totalInvalidBids > 0) {
-            if (execCount < 3) {
-                execCount++;
-                console.log(`*** starting new execution after finding invalid bids ${summary.totalInvalidBids} exec count: ${execCount}`);
-                summary.totalInvalidBids = 0;
-                await startAutoTradeSession();
-            }
-            else {
-                return finishAutoTrades();
-            }
-        }
-        else {
-            return finishAutoTrades();
-        }
-        return null;
+        return finishAutoTrades();
     }
     async function finishAutoTrades() {
         const now = new Date().getTime();
         const elapsed = (now - startTime) / 1000;
         summary.elapsedSeconds = elapsed;
         await updateAutoTradeStart();
-        console.log(summary);
         console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
         return response.status(200).send(summary);
     }
     async function validateBids() {
-        const promises = [];
-        units.forEach(unit => {
-            const promise = validateBid(unit);
-            promises.push(promise);
-        });
-        console.log(`######## validateBids complete. ...closing up!`);
+        for (const unit of units) {
+            await validateBid(unit);
+        }
+        console.log(`######## validateBids complete. ...closing up! ################`);
         return 0;
+    }
+    async function isInvestorTotalOK(profile, offerAmount) {
+        let querySnap;
+        querySnap = await admin
+            .firestore()
+            .collection("investors")
+            .where("participantId", "==", profile.investor.split("#")[1])
+            .get();
+        if (querySnap.docs.length > 0) {
+            const investorRef = querySnap.docs[0].ref;
+            let bidQuerySnap;
+            bidQuerySnap = await investorRef
+                .collection("invoiceBids")
+                .where("isSettled", "==", false)
+                .get();
+            if (bidQuerySnap.docs.length === 0) {
+                return true;
+            }
+            else {
+                let total = 0.0;
+                bidQuerySnap.forEach(doc => {
+                    const bid = doc.data();
+                    total += bid.amount;
+                });
+                total += offerAmount;
+                if (total < profile.maxInvestableAmount ||
+                    total === profile.maxInvestableAmount) {
+                    return true;
+                }
+                else {
+                    console.log(`Total unsettled bids: ${total} are more than the maxInvestableAmount: ${profile.maxInvestableAmount}, - DECLINED. name: ${profile.name}`);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    function isWithinSupplierList(profile, offer) {
+        if (!offer.suppliers) {
+            return true;
+        }
+        let isSupplierOK = false;
+        profile.suppliers.forEach(supplier => {
+            if (offer.supplier ===
+                `resource:com.oneconnect.biz.Supplier#${supplier.participantId}`) {
+                isSupplierOK = true;
+            }
+        });
+        return isSupplierOK;
+    }
+    function isWithinSectorList(profile, offer) {
+        if (!offer.sectors) {
+            return true;
+        }
+        let isSectorOK = false;
+        profile.sectors.forEach(sector => {
+            if (offer.sector ===
+                `resource:com.oneconnect.biz.Sector#${sector.participantId}`) {
+                isSectorOK = true;
+            }
+        });
+        return isSectorOK;
+    }
+    async function isAccountBalanceOK(profile) {
+        let wallet;
+        wallets.forEach(w => {
+            if (profile.investor === w.investor) {
+                wallet = w;
+            }
+        });
+        //TODO - connect to Stellar/WorldWire here
+        return true;
     }
     async function validateBid(unit) {
         let validInvoiceAmount = false;
-        let validSec = false;
-        let validSupp = false;
+        let validSector = false;
+        let validSupplier = false;
         let validTotal = false;
         let validMinimumDiscount = false;
         let validAccountBalance = false;
-        // let total = 0.00;
+        validTotal = await isInvestorTotalOK(unit.profile, unit.offer.offerAmount);
+        validSector = isWithinSectorList(unit.profile, unit.offer);
+        validSupplier = isWithinSupplierList(unit.profile, unit.offer);
+        validAccountBalance = await isAccountBalanceOK(unit.profile);
         if (unit.offer.discountPercent > unit.profile.minimumDiscount ||
             unit.offer.discountPercent === unit.profile.minimumDiscount) {
             validMinimumDiscount = true;
         }
         else {
-            console.log(`-- validMinimumDiscount check failed. discount offered: ${unit.offer.discountPercent}% minimumDiscount required: ${unit.profile.minimumDiscount}%`);
+            console.log(`-- validMinimumDiscount check failed. discount offered: ${unit.offer.discountPercent}% minimumDiscount required: ${unit.profile.minimumDiscount}% - ${unit.profile.name}`);
         }
-        //-- validInvoiceAmount check failed. offered: 73623 max required: 2500000
         if (unit.offer.offerAmount < unit.profile.maxInvoiceAmount ||
             unit.offer.offerAmount === unit.profile.maxInvoiceAmount) {
             validInvoiceAmount = true;
         }
         else {
-            console.log(`-- validInvoiceAmount check failed. offered: ${unit.offer.offerAmount} max limit: ${unit.profile.maxInvoiceAmount}`);
-        }
-        //TODO - add validation checks here
-        if (debug) {
-            validSec = true;
-            validAccountBalance = true;
-            validSupp = true;
-            validTotal = true;
+            const invalid = {
+                'date': new Date().toISOString(),
+                'offer': JSON.stringify(unit.offer),
+                'profile': JSON.stringify(unit.profile),
+                'validTotal': validTotal,
+                'validSector': validSector,
+                'validSupplier': validSupplier,
+                'validInvoiceAmount': validInvoiceAmount,
+                'validAccountBalance': validAccountBalance,
+                'validMinimumDiscount': validMinimumDiscount,
+            };
+            await admin.firestore().collection('invalidAutoTrades').add(invalid).catch(e => {
+                console.log(e);
+            });
+            await sendInvalidToTopic(invalid);
+            console.log(`-- validInvoiceAmount check failed. offered: ${unit.offer.offerAmount} max limit: ${unit.profile.maxInvoiceAmount} - ${unit.profile.name}`);
         }
         //check validity of ALL indicators
         if (validInvoiceAmount &&
             validMinimumDiscount &&
-            validSec &&
-            validSupp &&
+            validSector &&
+            validSupplier &&
             validTotal &&
             validAccountBalance) {
             return await writeBidToBFN(unit);
@@ -132,7 +196,6 @@ exports.executeAutoTrades = functions
         else {
             //this offer has not met all validation requirements
             summary.totalInvalidBids++;
-            console.log(`---- Offer validation failed, bid ignored. offerAmount: ${unit.offer.offerAmount} investor: ${unit.profile.name}`);
             return 0;
         }
     }
@@ -156,7 +219,9 @@ exports.executeAutoTrades = functions
         bidQuerySnap.forEach(doc => {
             reserveTotal += doc.data()["reservePercent"];
         });
-        console.log(`&&&&&&&&& total precent reserved: ${reserveTotal} % from ${bidQuerySnap.size} existing bids. Offer amt: ${unit.offer.offerAmount}`);
+        if (reserveTotal > 0) {
+            console.log(`&&&&&&&&& total precent reserved: ${reserveTotal} % from ${bidQuerySnap.size} existing bids. Offer amt: ${unit.offer.offerAmount}`);
+        }
         const myReserve = 100.0 - reserveTotal;
         const myAmount = unit.offer.offerAmount * (myReserve / 100);
         const bid = {
@@ -182,12 +247,12 @@ exports.executeAutoTrades = functions
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
-        console.log(`####### --- executing ${apiSuffix} on BFN Blockchain: --- ####### ${url}`);
         const blockchainResponse = await BFNComms.AxiosComms.execute(url, bid).catch(e => {
             console.log(e);
             handleError(e);
         });
         if (blockchainResponse.status === 200) {
+            bidCount++;
             return await writeBidToFirestore(docId, bid, unit.offer.offerId);
         }
         else {
@@ -229,7 +294,7 @@ exports.executeAutoTrades = functions
         return await closeOfferOnBFN(offerId);
     }
     async function sendMessageToTopic(mdata) {
-        const topic = `invoiceBids`;
+        const mTopic = `invoiceBids`;
         const payload = {
             data: {
                 messageType: "INVOICE_BID",
@@ -251,8 +316,26 @@ exports.executeAutoTrades = functions
             const devices = [mdata.supplierFCMToken];
             await admin.messaging().sendToDevice(devices, payload);
         }
-        console.log("sending invoice bid data to topic: " + topic);
-        return await admin.messaging().sendToTopic(topic, payload);
+        console.log("sending invoice bid data to topic: " + mTopic);
+        return await admin.messaging().sendToTopic(mTopic, payload);
+    }
+    async function sendInvalidToTopic(invalid) {
+        const mTopic = `invalidAutoTrades`;
+        const payload = {
+            data: {
+                messageType: "INVALID_TRADE",
+                json: JSON.stringify(invalid)
+            },
+            notification: {
+                title: "Invalid Trade",
+                body: "Invalid Bid on Offer " +
+                    invalid.profile.name +
+                    " amount: " +
+                    invalid.offer.offerAmount
+            }
+        };
+        console.log("sending invalid bid data to topic: " + mTopic);
+        return await admin.messaging().sendToTopic(mTopic, payload);
     }
     async function closeOfferOnBFN(offerId) {
         let url;
@@ -316,8 +399,24 @@ exports.executeAutoTrades = functions
             return 0;
         }
     }
+    async function getWallets() {
+        let qs;
+        qs = await admin
+            .firestore()
+            .collection("wallets")
+            .get();
+        qs.docs.forEach(doc => {
+            const data = doc.data();
+            const wallet = new Data.Wallet();
+            wallet.stellarPublicKey = data["stellarPublicKey"];
+            wallet.investor = data["investor"];
+            wallets.push(wallet);
+        });
+        console.log("###### get wallets: " + wallets.length + " found");
+    }
     async function getData() {
         console.log("################### getData ######################");
+        await getWallets();
         let qso;
         qso = await admin
             .firestore()
@@ -352,6 +451,9 @@ exports.executeAutoTrades = functions
         if (qso.docs.length === 0) {
             console.log("No open offers found. quitting ...");
             return 0;
+        }
+        else {
+            console.log("### Open offers found: " + qso.docs.length);
         }
         offers.map(offer => {
             summary.possibleAmount += offer.offerAmount;
@@ -418,8 +520,6 @@ exports.executeAutoTrades = functions
         let offerIndex = 0;
         units = [];
         do {
-            console.log(`+++ buildUnits, offer, supplier: ${offers[offerIndex].supplierName} customerName: ${offers[offerIndex].customerName} 
-            offerAmount: ${offers[offerIndex].offerAmount} discountPercent: ${offers[offerIndex].discountPercent} %`);
             const unit = new Data.ExecutionUnit();
             unit.offer = offers[offerIndex];
             if (orderIndex === orders.length) {
@@ -435,7 +535,7 @@ exports.executeAutoTrades = functions
             units.push(unit);
             offerIndex++;
         } while (offerIndex < offers.length);
-        console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers assigned: ${offerIndex}`);
+        console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers assigned: ${offers.length}`);
     }
     function shuffleOrders() {
         console.log(orders);
@@ -480,7 +580,7 @@ exports.executeAutoTrades = functions
             console.log(e);
             handleError(e);
         });
-        console.log("################### updateAutoTradeStart ######################");
+        console.log("################### updated AutoTradeStart ######################");
         return mf;
     }
     function handleError(message) {
@@ -492,7 +592,6 @@ exports.executeAutoTrades = functions
             const payload = {
                 name: "AutoTradeExecution",
                 message: message,
-                data: request.body.data,
                 date: new Date().toISOString(),
                 summary: summary
             };
@@ -501,7 +600,9 @@ exports.executeAutoTrades = functions
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send(message);
+            response
+                .status(400)
+                .send("Auto Trade fell down and could not get up again!");
         }
     }
 });

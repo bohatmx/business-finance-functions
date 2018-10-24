@@ -55,11 +55,11 @@ export const registerInvoice = functions.https.onRequest(
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ### status: " + mresponse.status);
-          handleError(mresponse);
+          handleError(mresponse.data);
         }
       } catch (error) {
         console.log(error);
-        handleError(error);
+        handleError('RegisterInvoice failed');
       }
     }
     async function writeToFirestore(mdata) {
@@ -215,7 +215,7 @@ export const registerInvoice = functions.https.onRequest(
         response.status(400).send(payload);
       } catch (e) {
         console.log('possible error propagation/cascade here. ignored')
-        response.status(400).send(message);
+        response.status(400).send('RegisterInvoice failed');
       }
     }
   }

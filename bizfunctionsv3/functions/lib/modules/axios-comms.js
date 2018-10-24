@@ -4,6 +4,7 @@ const axios = require('axios');
 class AxiosComms {
     static async execute(url, data) {
         console.log(`######### AxiosComms.execute starting; ${url} data: ${JSON.stringify(data)}`);
+        const start = new Date().getTime();
         const mresponse = await axios({
             method: 'post',
             url: url,
@@ -13,8 +14,6 @@ class AxiosComms {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
                 console.log(error.response.data);
-                console.log(error.response.status);
-                console.log(error.response.headers);
             }
             else if (error.request) {
                 // The request was made but no response was received
@@ -27,9 +26,11 @@ class AxiosComms {
                 console.log('Something happened in setting up the request that triggered an Error: ', error.message);
             }
             console.log(error);
-            throw error;
+            throw new Error(error.response.data);
         });
-        console.log(`## BFN response status: ${mresponse.status} after request: ${url}`);
+        const end = new Date().getTime();
+        const elapsedSeconds = (end - start) / 1000;
+        console.log(`## BFN response status: ${mresponse.status} after request: ${url} *** elapsed: ${elapsedSeconds} seconds`);
         return mresponse;
     }
 }

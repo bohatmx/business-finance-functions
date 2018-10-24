@@ -451,4 +451,51 @@ ExecutionUnit = __decorate([
     json2typescript_1.JsonObject('ExecutionUnit')
 ], ExecutionUnit);
 exports.ExecutionUnit = ExecutionUnit;
+/*
+String stellarPublicKey;
+  String dateRegistered;
+  String name;
+  String govtEntity;
+  String company;
+  String supplier;
+  String procurementOffice;
+  String oneConnect;
+  String auditor, sourceSeed;
+  String bank, secret, fcmToken, encryptedSecret;
+  String investor, documentReference;
+*/
+let Wallet = class Wallet {
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "dateRegistered", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "name", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "govtEntity", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "supplier", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "investor", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "oneConnect", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Wallet.prototype, "stellarPublicKey", void 0);
+Wallet = __decorate([
+    json2typescript_1.JsonObject('Wallet')
+], Wallet);
+exports.Wallet = Wallet;
 //# sourceMappingURL=data.js.map

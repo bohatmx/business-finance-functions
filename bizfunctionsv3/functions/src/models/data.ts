@@ -218,3 +218,34 @@ export class ExecutionUnit {
     static ErrorInvalidTrade = 1;
     static ErrorBadBid = 2;
 }
+/*
+String stellarPublicKey;
+  String dateRegistered;
+  String name;
+  String govtEntity;
+  String company;
+  String supplier;
+  String procurementOffice;
+  String oneConnect;
+  String auditor, sourceSeed;
+  String bank, secret, fcmToken, encryptedSecret;
+  String investor, documentReference;
+*/
+@JsonObject('Wallet')
+export class Wallet {
+    @JsonProperty()
+    dateRegistered: string;
+    @JsonProperty()
+    name: string;
+    @JsonProperty()
+    govtEntity: string;
+    @JsonProperty()
+    supplier: string;
+    @JsonProperty()
+    investor: string;
+    @JsonProperty()
+    oneConnect: string;
+    @JsonProperty()
+    stellarPublicKey: string;
+
+}
