@@ -1,0 +1,35 @@
+2018-10-24T03:20:29.267Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:29.267Z I executeAutoTrade: undefined
+2018-10-24T03:20:29.267Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:29.268Z I executeAutoTrade: -- validMinimumDiscount check failed. discount offered: 1% minimumDiscount required: 3%
+2018-10-24T03:20:29.268Z I executeAutoTrade: ---- Offer validation failed, bid ignored. offerAmount: 47713.05 investor: Black Ox Capital
+2018-10-24T03:20:29.368Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:29.368Z I executeAutoTrade: undefined
+2018-10-24T03:20:29.368Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:29.368Z I executeAutoTrade: -- validMinimumDiscount check failed. discount offered: 2% minimumDiscount required: 3%
+2018-10-24T03:20:29.368Z I executeAutoTrade: ---- Offer validation failed, bid ignored. offerAmount: 13494.6 investor: Black Ox Capital
+2018-10-24T03:20:29.568Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:29.568Z I executeAutoTrade: undefined
+2018-10-24T03:20:29.568Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:29.768Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:29.768Z I executeAutoTrade: undefined
+2018-10-24T03:20:29.768Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:29.968Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:29.968Z I executeAutoTrade: undefined
+2018-10-24T03:20:29.968Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:29.968Z I executeAutoTrade: -- validMinimumDiscount check failed. discount offered: 1% minimumDiscount required: 3%
+2018-10-24T03:20:29.968Z I executeAutoTrade: -- validInvoiceAmount check failed. offered: 591723 max limit: 50000
+2018-10-24T03:20:29.968Z I executeAutoTrade: ---- Offer validation failed, bid ignored. offerAmount: 591723 investor: Black Ox Capital
+2018-10-24T03:20:30.168Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:30.168Z I executeAutoTrade: undefined
+2018-10-24T03:20:30.168Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:30.168Z I executeAutoTrade: -- validInvoiceAmount check failed. offered: 164437 max limit: 50000
+2018-10-24T03:20:30.168Z I executeAutoTrade: ---- Offer validation failed, bid ignored. offerAmount: 164437 investor: Black Ox Capital
+2018-10-24T03:20:30.268Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:30.268Z I executeAutoTrade: undefined
+2018-10-24T03:20:30.268Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:30.468Z I executeAutoTrade: &&&&&&& - Have to contact Stellar or World Wire to obtain account balance
+2018-10-24T03:20:30.468Z I executeAutoTrade: undefined
+2018-10-24T03:20:30.468Z I executeAutoTrade: Account Balance checked - all OK! (fake, still TODO)
+2018-10-24T03:20:30.468Z I executeAutoTrade: -- validInvoiceAmount check failed. offered: 384652 max limit: 50000
+2018-10-24T03:20:30.468Z I executeAutoTrade: ---- Offer validation failed, bid ignored. offerAmount: 384652 investor: Black Ox Capital
