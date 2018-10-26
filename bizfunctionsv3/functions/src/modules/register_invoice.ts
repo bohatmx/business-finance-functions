@@ -96,7 +96,7 @@ export const registerInvoice = functions.https.onRequest(
               handleError(`RegisterInvoice failed: ${error}`);
             });
           console.log(
-            `*** Data written to Firestore suppliers/invoices ${ref3.patht}`
+            `*** Data written to Firestore suppliers/invoices ${ref3.path}`
           );
           await sendMessageToTopic(mdata)
           await checkAutoAccept(mdata);
@@ -155,7 +155,6 @@ export const registerInvoice = functions.https.onRequest(
       }
     }
     async function acceptInvoice(invoice) {
-      console.log("#### accepting invoice ........");
       const invoiceAcceptance = {
         acceptanceId: uuid(),
         supplierName: invoice.supplierName,
@@ -191,7 +190,6 @@ export const registerInvoice = functions.https.onRequest(
             });
           console.log(`Firestore document added: ${mRef.path}`);
           await InvoiceUpdate.updateInvoice(mresponse.data)
-          console.log('Customer has autoAccept == true, - send 201 with invoiceAcceptance')
           response.status(201).send(invoice);
           return null;
         } else {

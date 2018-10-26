@@ -8,11 +8,12 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const BFNComms = require("./axios-comms");
 const Data = require("../models/data");
+const Matcher = require("./matcher");
 // const Firestore = require("firestore");
 const uuid = require("uuid/v1");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
-    .runWith({ memory: "256MB", timeoutSeconds: 480 })
+    .runWith({ memory: "512MB", timeoutSeconds: 540 })
     .https.onRequest(async (request, response) => {
     // const firestore = new Firestore();
     // const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -50,8 +51,8 @@ exports.executeAutoTrades = functions
         await writeAutoTradeStart();
         const result = await getData();
         if (result > 0) {
-            buildUnits();
-            await validateBids();
+            await buildUnits();
+            await writeBids();
         }
         console.log(summary);
         return finishAutoTrades();
@@ -65,139 +66,12 @@ exports.executeAutoTrades = functions
             ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
         return response.status(200).send(summary);
     }
-    async function validateBids() {
+    async function writeBids() {
         for (const unit of units) {
-            await validateBid(unit);
+            await writeBidToBFN(unit);
         }
         console.log(`######## validateBids complete. ...closing up! ################`);
         return 0;
-    }
-    async function isInvestorTotalOK(profile, offerAmount) {
-        let querySnap;
-        querySnap = await admin
-            .firestore()
-            .collection("investors")
-            .where("participantId", "==", profile.investor.split("#")[1])
-            .get();
-        if (querySnap.docs.length > 0) {
-            const investorRef = querySnap.docs[0].ref;
-            let bidQuerySnap;
-            bidQuerySnap = await investorRef
-                .collection("invoiceBids")
-                .where("isSettled", "==", false)
-                .get();
-            if (bidQuerySnap.docs.length === 0) {
-                return true;
-            }
-            else {
-                let total = 0.0;
-                bidQuerySnap.forEach(doc => {
-                    const bid = doc.data();
-                    total += bid.amount;
-                });
-                total += offerAmount;
-                if (total < profile.maxInvestableAmount ||
-                    total === profile.maxInvestableAmount) {
-                    return true;
-                }
-                else {
-                    console.log(`Total unsettled bids: ${total} are more than the maxInvestableAmount: ${profile.maxInvestableAmount}, - DECLINED. name: ${profile.name}`);
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    function isWithinSupplierList(profile, offer) {
-        if (!offer.suppliers) {
-            return true;
-        }
-        let isSupplierOK = false;
-        profile.suppliers.forEach(supplier => {
-            if (offer.supplier ===
-                `resource:com.oneconnect.biz.Supplier#${supplier.participantId}`) {
-                isSupplierOK = true;
-            }
-        });
-        return isSupplierOK;
-    }
-    function isWithinSectorList(profile, offer) {
-        if (!offer.sectors) {
-            return true;
-        }
-        let isSectorOK = false;
-        profile.sectors.forEach(sector => {
-            if (offer.sector ===
-                `resource:com.oneconnect.biz.Sector#${sector.participantId}`) {
-                isSectorOK = true;
-            }
-        });
-        return isSectorOK;
-    }
-    async function isAccountBalanceOK(profile) {
-        let wallet;
-        wallets.forEach(w => {
-            if (profile.investor === w.investor) {
-                wallet = w;
-            }
-        });
-        //TODO - connect to Stellar/WorldWire here
-        return true;
-    }
-    async function validateBid(unit) {
-        let validInvoiceAmount = false;
-        let validSector = false;
-        let validSupplier = false;
-        let validTotal = false;
-        let validMinimumDiscount = false;
-        let validAccountBalance = false;
-        validTotal = await isInvestorTotalOK(unit.profile, unit.offer.offerAmount);
-        validSector = isWithinSectorList(unit.profile, unit.offer);
-        validSupplier = isWithinSupplierList(unit.profile, unit.offer);
-        validAccountBalance = await isAccountBalanceOK(unit.profile);
-        if (unit.offer.discountPercent > unit.profile.minimumDiscount ||
-            unit.offer.discountPercent === unit.profile.minimumDiscount) {
-            validMinimumDiscount = true;
-        }
-        else {
-            console.log(`-- validMinimumDiscount check failed. discount offered: ${unit.offer.discountPercent}% minimumDiscount required: ${unit.profile.minimumDiscount}% - ${unit.profile.name}`);
-        }
-        if (unit.offer.offerAmount < unit.profile.maxInvoiceAmount ||
-            unit.offer.offerAmount === unit.profile.maxInvoiceAmount) {
-            validInvoiceAmount = true;
-        }
-        else {
-            const invalid = {
-                'date': new Date().toISOString(),
-                'offer': JSON.stringify(unit.offer),
-                'profile': JSON.stringify(unit.profile),
-                'validTotal': validTotal,
-                'validSector': validSector,
-                'validSupplier': validSupplier,
-                'validInvoiceAmount': validInvoiceAmount,
-                'validAccountBalance': validAccountBalance,
-                'validMinimumDiscount': validMinimumDiscount,
-            };
-            await admin.firestore().collection('invalidAutoTrades').add(invalid).catch(e => {
-                console.log(e);
-            });
-            await sendInvalidToTopic(invalid);
-            console.log(`-- validInvoiceAmount check failed. offered: ${unit.offer.offerAmount} max limit: ${unit.profile.maxInvoiceAmount} - ${unit.profile.name}`);
-        }
-        //check validity of ALL indicators
-        if (validInvoiceAmount &&
-            validMinimumDiscount &&
-            validSector &&
-            validSupplier &&
-            validTotal &&
-            validAccountBalance) {
-            return await writeBidToBFN(unit);
-        }
-        else {
-            //this offer has not met all validation requirements
-            summary.totalInvalidBids++;
-            return 0;
-        }
     }
     async function writeBidToBFN(unit) {
         //get existing invoice bids for this offer
@@ -252,7 +126,6 @@ exports.executeAutoTrades = functions
             handleError(e);
         });
         if (blockchainResponse.status === 200) {
-            bidCount++;
             return await writeBidToFirestore(docId, bid, unit.offer.offerId);
         }
         else {
@@ -319,24 +192,6 @@ exports.executeAutoTrades = functions
         console.log("sending invoice bid data to topic: " + mTopic);
         return await admin.messaging().sendToTopic(mTopic, payload);
     }
-    async function sendInvalidToTopic(invalid) {
-        const mTopic = `invalidAutoTrades`;
-        const payload = {
-            data: {
-                messageType: "INVALID_TRADE",
-                json: JSON.stringify(invalid)
-            },
-            notification: {
-                title: "Invalid Trade",
-                body: "Invalid Bid on Offer " +
-                    invalid.profile.name +
-                    " amount: " +
-                    invalid.offer.offerAmount
-            }
-        };
-        console.log("sending invalid bid data to topic: " + mTopic);
-        return await admin.messaging().sendToTopic(mTopic, payload);
-    }
     async function closeOfferOnBFN(offerId) {
         let url;
         if (debug === "true") {
@@ -399,24 +254,8 @@ exports.executeAutoTrades = functions
             return 0;
         }
     }
-    async function getWallets() {
-        let qs;
-        qs = await admin
-            .firestore()
-            .collection("wallets")
-            .get();
-        qs.docs.forEach(doc => {
-            const data = doc.data();
-            const wallet = new Data.Wallet();
-            wallet.stellarPublicKey = data["stellarPublicKey"];
-            wallet.investor = data["investor"];
-            wallets.push(wallet);
-        });
-        console.log("###### get wallets: " + wallets.length + " found");
-    }
     async function getData() {
         console.log("################### getData ######################");
-        await getWallets();
         let qso;
         qso = await admin
             .firestore()
@@ -446,7 +285,6 @@ exports.executeAutoTrades = functions
             offer.supplier = data["supplier"];
             offer.supplierName = data["supplierName"];
             offers.push(offer);
-            console.log(`###### offer by: ${offer.supplierName} offerAmount: ${offer.offerAmount} endTime: ${offer.endTime}`);
         });
         if (qso.docs.length === 0) {
             console.log("No open offers found. quitting ...");
@@ -514,28 +352,17 @@ exports.executeAutoTrades = functions
         });
         return offers.length;
     }
-    function buildUnits() {
+    async function buildUnits() {
         console.log("################### buildUnits ######################");
-        let orderIndex = 0;
-        let offerIndex = 0;
-        units = [];
-        do {
-            const unit = new Data.ExecutionUnit();
-            unit.offer = offers[offerIndex];
-            if (orderIndex === orders.length) {
-                orderIndex = 0;
-            }
-            unit.order = orders[orderIndex];
-            profiles.forEach(p => {
-                if (p.investor === unit.order.investor) {
-                    unit.profile = p;
-                }
-            });
-            orderIndex++;
-            units.push(unit);
-            offerIndex++;
-        } while (offerIndex < offers.length);
-        console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers assigned: ${offers.length}`);
+        try {
+            units = await Matcher.Matcher.match(profiles, orders, offers);
+        }
+        catch (e) {
+            console.log(e);
+            handleError("Matching fell down.");
+        }
+        console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers : ${offers.length}`);
+        return units;
     }
     function shuffleOrders() {
         console.log(orders);

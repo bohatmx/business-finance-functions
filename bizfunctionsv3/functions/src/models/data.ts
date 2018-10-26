@@ -47,6 +47,8 @@ export class InvestorProfile {
     sectors: string[];
     @JsonProperty()
     suppliers: string[]
+    @JsonProperty()
+    totalBidAmount: number = 0.00;
 }
 @JsonObject('Offer')
 export class Offer {

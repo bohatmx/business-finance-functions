@@ -69,6 +69,9 @@ AutoTradeOrder = __decorate([
 ], AutoTradeOrder);
 exports.AutoTradeOrder = AutoTradeOrder;
 let InvestorProfile = class InvestorProfile {
+    constructor() {
+        this.totalBidAmount = 0.00;
+    }
 };
 __decorate([
     json2typescript_1.JsonProperty(),
@@ -114,6 +117,10 @@ __decorate([
     json2typescript_1.JsonProperty(),
     __metadata("design:type", Array)
 ], InvestorProfile.prototype, "suppliers", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvestorProfile.prototype, "totalBidAmount", void 0);
 InvestorProfile = __decorate([
     json2typescript_1.JsonObject('InvestorProfile')
 ], InvestorProfile);
