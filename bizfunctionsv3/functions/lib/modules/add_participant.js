@@ -112,6 +112,8 @@ exports.addParticipant = functions
     }
     async function writeToFirestore(mdata) {
         try {
+            mdata.intDate = new Date().getUTCMilliseconds();
+            mdata.date = new Date().toUTCString();
             await admin
                 .firestore()
                 .collection(collectionName)

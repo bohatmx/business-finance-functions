@@ -2,40 +2,41 @@
 // Add DeliveryNote to BFN and Firestore
 // ######################################################################
 
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import * as BFNConstants from '../models/constants';
-import * as AxiosComms from './axios-comms';
-const uuid = require('uuid/v1')
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import * as BFNConstants from "../models/constants";
+import * as AxiosComms from "./axios-comms";
+const uuid = require("uuid/v1");
 
-export const registerDeliveryNote = functions.https.onRequest(async (request, response) => {
+export const registerDeliveryNote = functions.https.onRequest(
+  async (request, response) => {
     if (!request.body) {
-        console.log('ERROR - request has no body')
-        return response.status(400).send('request has no body')
+      console.log("ERROR - request has no body");
+      return response.status(400).send("request has no body");
     }
-   
-    console.log(`##### Incoming debug ${request.body.debug}`)
-    console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`)
 
-    const debug = request.body.debug
-    const data = request.body.data
+    console.log(`##### Incoming debug ${request.body.debug}`);
+    console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
 
-    const apiSuffix = 'RegisterDeliveryNote'
+    const debug = request.body.debug;
+    const data = request.body.data;
+
+    const apiSuffix = "RegisterDeliveryNote";
 
     if (validate() === true) {
-        await writeToBFN()
+      await writeToBFN();
     }
-  
-    return null
+
+    return null;
     function validate() {
       if (!request.body) {
         console.log("ERROR - request has no body");
         return response.status(400).send("request has no body");
       }
-    //   if (!request.body.debug) {
-    //     console.log("ERROR - request has no debug flag");
-    //     return response.status(400).send(" request has no debug flag");
-    //   }
+      //   if (!request.body.debug) {
+      //     console.log("ERROR - request has no debug flag");
+      //     return response.status(400).send(" request has no debug flag");
+      //   }
       if (!request.body.data) {
         console.log("ERROR - request has no data");
         return response.status(400).send(" request has no data");
@@ -43,100 +44,114 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
       return true;
     }
     async function writeToBFN() {
-        let url;
-        if (debug) {
-            url = BFNConstants.Constants.DEBUG_URL + apiSuffix
+      let url;
+      if (debug) {
+        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
+      } else {
+        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
+      }
+      if (!data.deliveryNoteId) {
+        data["deliveryNoteId"] = uuid();
+      }
+      try {
+        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        if (mresponse.status === 200) {
+          return writeToFirestore(mresponse.data);
         } else {
-            url = BFNConstants.Constants.RELEASE_URL + apiSuffix
+          console.log(`** BFN ERROR ## ${mresponse.data}`);
+          handleError(mresponse);
         }
-        if (!data.deliveryNoteId) {
-            data['deliveryNoteId'] = uuid()
-        }
-        try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url,data)
-            if (mresponse.status === 200) {
-                return writeToFirestore(mresponse.data)
-            } else {
-                console.log(`** BFN ERROR ## ${mresponse.data}`)
-                handleError(mresponse)
-            }
-
-        } catch (error) {
-            console.log('--------------- axios: BFN blockchain problem -----------------')
-            console.log(error);
-            handleError(error)
-        }
-
+      } catch (error) {
+        console.log(
+          "--------------- axios: BFN blockchain problem -----------------"
+        );
+        console.log(error);
+        handleError(error);
+      }
     }
     async function writeToFirestore(mdata) {
-        
-        try {
-            let mdocID;
-            if (!mdata.govtDocumentRef) {
-                const key = mdata.govtEntity.split('#')[1]
-                let snapshot
-                 snapshot = await admin.firestore()
-                    .collection('govtEntities').where('participantId', '==', key)
-                    .get().catch(function (error) {
-                        console.log(error)
-                        handleError(error)
-                    });
-                snapshot.forEach(doc => {
-                    mdocID = doc.id
-                });
-
-            } else {
-                mdocID = mdata.govtDocumentRef
-            }
-            let ref1
-            if (mdocID) {
-                 ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdocID)
-                    .collection('deliveryNotes').add(mdata)
-                    .catch(function (error) {
-                        console.log(error)
-                        handleError(error)
-                    });
-                console.log(`*** Data successfully written to Firestore! ${ref1.path}`)
-            }
-
-            let docID;
-            if (!mdata.supplierDocumentRef) {
-                const key = mdata.supplier.split('#')[1]
-                let snapshot
-                 snapshot = await admin.firestore()
-                    .collection('suppliers').where('participantId', '==', key)
-                    .get().catch(function (error) {
-                        console.log(error)
-                         handleError(error)
-                    });
-                snapshot.forEach(doc => {
-                    docID = doc.id
-                });
-
-            } else {
-                docID = mdata.supplierDocumentRef
-            }
-            if (docID) {
-                let ref2
-                 ref2 = await admin.firestore()
-                    .collection('suppliers').doc(docID)
-                    .collection('deliveryNotes').add(mdata)
-                    .catch(function (error) {
-                        console.log(error)
-                         handleError(error)
-                    });
-                console.log(`*** Data successfully written to Firestore! ${ref2.path}`)
-            }
-            await sendMessageToTopic(mdata)
-            console.log('Delivery Note processed good. OK!')
-            response.status(200).send(mdata)
-            return ref1
-        } catch (e) {
-            console.log(e)
-             handleError(e)
+      mdata.intDate = new Date().getUTCMilliseconds();
+      mdata.date = new Date().toUTCString();
+      try {
+        let mdocID;
+        if (!mdata.govtDocumentRef) {
+          const key = mdata.govtEntity.split("#")[1];
+          let snapshot;
+          snapshot = await admin
+            .firestore()
+            .collection("govtEntities")
+            .where("participantId", "==", key)
+            .get()
+            .catch(function(error) {
+              console.log(error);
+              handleError(error);
+            });
+          snapshot.forEach(doc => {
+            mdocID = doc.id;
+          });
+        } else {
+          mdocID = mdata.govtDocumentRef;
+        }
+        let ref1;
+        if (mdocID) {
+          ref1 = await admin
+            .firestore()
+            .collection("govtEntities")
+            .doc(mdocID)
+            .collection("deliveryNotes")
+            .add(mdata)
+            .catch(function(error) {
+              console.log(error);
+              handleError(error);
+            });
+          console.log(
+            `*** Data successfully written to Firestore! ${ref1.path}`
+          );
         }
 
+        let docID;
+        if (!mdata.supplierDocumentRef) {
+          const key = mdata.supplier.split("#")[1];
+          let snapshot;
+          snapshot = await admin
+            .firestore()
+            .collection("suppliers")
+            .where("participantId", "==", key)
+            .get()
+            .catch(function(error) {
+              console.log(error);
+              handleError(error);
+            });
+          snapshot.forEach(doc => {
+            docID = doc.id;
+          });
+        } else {
+          docID = mdata.supplierDocumentRef;
+        }
+        if (docID) {
+          let ref2;
+          ref2 = await admin
+            .firestore()
+            .collection("suppliers")
+            .doc(docID)
+            .collection("deliveryNotes")
+            .add(mdata)
+            .catch(function(error) {
+              console.log(error);
+              handleError(error);
+            });
+          console.log(
+            `*** Data successfully written to Firestore! ${ref2.path}`
+          );
+        }
+        await sendMessageToTopic(mdata);
+        console.log("Delivery Note processed good. OK!");
+        response.status(200).send(mdata);
+        return ref1;
+      } catch (e) {
+        console.log(e);
+        handleError(e);
+      }
     }
     async function sendMessageToTopic(mdata) {
       const topic = `deliveryNotes`;
@@ -147,12 +162,10 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
         },
         notification: {
           title: "Delivery Note",
-          body:
-            "Delivery Note from " +
-            mdata.supplierName 
+          body: "Delivery Note from " + mdata.supplierName
         }
       };
-      
+
       console.log("sending delivery note data to topic: " + topic);
       return await admin.messaging().sendToTopic(topic, payload);
     }
@@ -172,4 +185,5 @@ export const registerDeliveryNote = functions.https.onRequest(async (request, re
         response.status(400).send(message);
       }
     }
-});
+  }
+);

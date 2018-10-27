@@ -48,7 +48,7 @@ export const acceptDeliveryNote = functions.https.onRequest(
       }
       return true;
     }
-    
+
     async function writeToBFN() {
       let url;
       if (debug) {
@@ -75,6 +75,8 @@ export const acceptDeliveryNote = functions.https.onRequest(
     }
 
     async function writeToFirestore(mdata) {
+      mdata.intDate = new Date().getUTCMilliseconds();
+      mdata.date = new Date().toUTCString();
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {

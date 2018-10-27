@@ -18,6 +18,7 @@ import * as DeleteAuthUsers from './modules/delete_auth_users'
 import * as AddParticipant from './modules/add_participant'
 import * as SupplierDashboard from './modules/supplier-dashboard'
 import * as InvestorDashboard from './modules/investor-dashboard'
+import * as OpenOffersWithPaging from './modules/open-offers-paging'
 
 admin.initializeApp();
 
@@ -40,4 +41,5 @@ export const deleteAuthUsers = DeleteAuthUsers.deleteAuthUsers
 export const supplierDashboard = SupplierDashboard.supplierDashboard
 export const investorDashboard = InvestorDashboard.investorDashboard
 export const addParticipant = AddParticipant.addParticipant
+export const getOpenOffersWithPaging = OpenOffersWithPaging.getOpenOffersWithPaging
 

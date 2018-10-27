@@ -113,14 +113,14 @@ export const addParticipant = functions
     }
     async function writeToFirestore(mdata) {
       try {
+        mdata.intDate = new Date().getUTCMilliseconds();
+        mdata.date = new Date().toUTCString();
         await admin
           .firestore()
           .collection(collectionName)
           .add(mdata)
           .then(nRef => {
-            console.log(`*** Participant written to Firestore! ${
-                nRef.path}`
-            );
+            console.log(`*** Participant written to Firestore! ${nRef.path}`);
             result.participantPath = nRef.path;
             return nRef.path;
           })

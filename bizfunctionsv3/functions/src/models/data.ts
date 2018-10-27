@@ -55,6 +55,8 @@ export class Offer {
     @JsonProperty()
     offerId: string;
     @JsonProperty()
+    intDate: number;
+    @JsonProperty()
     startTime: string;
     @JsonProperty()
     endTime: string;

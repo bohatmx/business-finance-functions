@@ -133,6 +133,10 @@ __decorate([
 ], Offer.prototype, "offerId", void 0);
 __decorate([
     json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], Offer.prototype, "intDate", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
     __metadata("design:type", String)
 ], Offer.prototype, "startTime", void 0);
 __decorate([

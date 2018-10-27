@@ -7,17 +7,17 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
-const uuid = require('uuid/v1');
+const uuid = require("uuid/v1");
 exports.registerDeliveryNote = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
-        console.log('ERROR - request has no body');
-        return response.status(400).send('request has no body');
+        console.log("ERROR - request has no body");
+        return response.status(400).send("request has no body");
     }
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
-    const apiSuffix = 'RegisterDeliveryNote';
+    const apiSuffix = "RegisterDeliveryNote";
     if (validate() === true) {
         await writeToBFN();
     }
@@ -46,7 +46,7 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
         if (!data.deliveryNoteId) {
-            data['deliveryNoteId'] = uuid();
+            data["deliveryNoteId"] = uuid();
         }
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
@@ -59,20 +59,25 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             }
         }
         catch (error) {
-            console.log('--------------- axios: BFN blockchain problem -----------------');
+            console.log("--------------- axios: BFN blockchain problem -----------------");
             console.log(error);
             handleError(error);
         }
     }
     async function writeToFirestore(mdata) {
+        mdata.intDate = new Date().getUTCMilliseconds();
+        mdata.date = new Date().toUTCString();
         try {
             let mdocID;
             if (!mdata.govtDocumentRef) {
-                const key = mdata.govtEntity.split('#')[1];
+                const key = mdata.govtEntity.split("#")[1];
                 let snapshot;
-                snapshot = await admin.firestore()
-                    .collection('govtEntities').where('participantId', '==', key)
-                    .get().catch(function (error) {
+                snapshot = await admin
+                    .firestore()
+                    .collection("govtEntities")
+                    .where("participantId", "==", key)
+                    .get()
+                    .catch(function (error) {
                     console.log(error);
                     handleError(error);
                 });
@@ -85,9 +90,12 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             }
             let ref1;
             if (mdocID) {
-                ref1 = await admin.firestore()
-                    .collection('govtEntities').doc(mdocID)
-                    .collection('deliveryNotes').add(mdata)
+                ref1 = await admin
+                    .firestore()
+                    .collection("govtEntities")
+                    .doc(mdocID)
+                    .collection("deliveryNotes")
+                    .add(mdata)
                     .catch(function (error) {
                     console.log(error);
                     handleError(error);
@@ -96,11 +104,14 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             }
             let docID;
             if (!mdata.supplierDocumentRef) {
-                const key = mdata.supplier.split('#')[1];
+                const key = mdata.supplier.split("#")[1];
                 let snapshot;
-                snapshot = await admin.firestore()
-                    .collection('suppliers').where('participantId', '==', key)
-                    .get().catch(function (error) {
+                snapshot = await admin
+                    .firestore()
+                    .collection("suppliers")
+                    .where("participantId", "==", key)
+                    .get()
+                    .catch(function (error) {
                     console.log(error);
                     handleError(error);
                 });
@@ -113,9 +124,12 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             }
             if (docID) {
                 let ref2;
-                ref2 = await admin.firestore()
-                    .collection('suppliers').doc(docID)
-                    .collection('deliveryNotes').add(mdata)
+                ref2 = await admin
+                    .firestore()
+                    .collection("suppliers")
+                    .doc(docID)
+                    .collection("deliveryNotes")
+                    .add(mdata)
                     .catch(function (error) {
                     console.log(error);
                     handleError(error);
@@ -123,7 +137,7 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
                 console.log(`*** Data successfully written to Firestore! ${ref2.path}`);
             }
             await sendMessageToTopic(mdata);
-            console.log('Delivery Note processed good. OK!');
+            console.log("Delivery Note processed good. OK!");
             response.status(200).send(mdata);
             return ref1;
         }
@@ -141,8 +155,7 @@ exports.registerDeliveryNote = functions.https.onRequest(async (request, respons
             },
             notification: {
                 title: "Delivery Note",
-                body: "Delivery Note from " +
-                    mdata.supplierName
+                body: "Delivery Note from " + mdata.supplierName
             }
         };
         console.log("sending delivery note data to topic: " + topic);

@@ -62,6 +62,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         }
     }
     async function writeToFirestore(mdata) {
+        mdata.intDate = new Date().getUTCMilliseconds();
+        mdata.date = new Date().toUTCString();
         try {
             const mdocID = mdata.govtDocumentRef;
             let ref1;

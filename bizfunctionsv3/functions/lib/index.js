@@ -20,6 +20,7 @@ const DeleteAuthUsers = require("./modules/delete_auth_users");
 const AddParticipant = require("./modules/add_participant");
 const SupplierDashboard = require("./modules/supplier-dashboard");
 const InvestorDashboard = require("./modules/investor-dashboard");
+const OpenOffersWithPaging = require("./modules/open-offers-paging");
 admin.initializeApp();
 exports.userAdded = UserAdded.userCreated;
 exports.userDeleted = UserDeleted.userDeleted;
@@ -40,4 +41,5 @@ exports.deleteAuthUsers = DeleteAuthUsers.deleteAuthUsers;
 exports.supplierDashboard = SupplierDashboard.supplierDashboard;
 exports.investorDashboard = InvestorDashboard.investorDashboard;
 exports.addParticipant = AddParticipant.addParticipant;
+exports.getOpenOffersWithPaging = OpenOffersWithPaging.getOpenOffersWithPaging;
 //# sourceMappingURL=index.js.map

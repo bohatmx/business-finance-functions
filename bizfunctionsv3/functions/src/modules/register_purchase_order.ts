@@ -71,7 +71,8 @@ export const registerPurchaseOrder = functions.https.onRequest(
     }
 
     async function writeToFirestore(mdata) {
-      
+      mdata.intDate = new Date().getUTCMilliseconds()
+      mdata.date = new Date().toUTCString()
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {
