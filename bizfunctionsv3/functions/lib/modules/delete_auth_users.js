@@ -8,6 +8,15 @@ const admin = require("firebase-admin");
 exports.deleteAuthUsers = functions.firestore
     .document("usersDeleteTriggers/{id}")
     .onCreate((snap, context) => {
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     admin
         .auth()
         .listUsers(1000)

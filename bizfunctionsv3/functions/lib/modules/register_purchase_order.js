@@ -8,15 +8,20 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
 const uuid = require("uuid/v1");
-// const Firestore = require("firestore");
 exports.registerPurchaseOrder = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");
         return response.status(400).send("request has no body");
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
@@ -138,7 +143,7 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                 });
                 console.log(`*** Data successfully written to Firestore! ${ref2.path}`);
             }
-            console.log('Purchase Order processed OK... done!');
+            console.log("Purchase Order processed OK... done!");
             response.send(mdata);
         }
         catch (e) {
@@ -160,7 +165,7 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send('Register PO failed');
+            response.status(400).send("Register PO failed");
         }
     }
 });

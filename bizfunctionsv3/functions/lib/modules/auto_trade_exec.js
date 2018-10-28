@@ -1,6 +1,6 @@
 "use strict";
 // ###########################################################################
-// Execute Auto Trading Session - investors matched with offers and bids made
+// Execute Auto Trading Session - investors matched with offers and bids 
 // ###########################################################################
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
@@ -9,15 +9,20 @@ const BFNConstants = require("../models/constants");
 const BFNComms = require("./axios-comms");
 const Data = require("../models/data");
 const Matcher = require("./matcher");
-// const Firestore = require("firestore");
 const uuid = require("uuid/v1");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
     .runWith({ memory: "512MB", timeoutSeconds: 540 })
     .https.onRequest(async (request, response) => {
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     if (!request.body) {
         console.log("ERROR - request has no body");
         return response.status(500).send("Request has no body");
@@ -28,7 +33,6 @@ exports.executeAutoTrades = functions
     let profiles = [];
     let offers = [];
     let units = [];
-    const wallets = [];
     const summary = {
         totalValidBids: 0,
         totalOffers: 0,
@@ -43,6 +47,7 @@ exports.executeAutoTrades = functions
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
     let bidCount = 0;
+    await sendMessageToHeartbeatTopic(`AutoTrade Session started: ${new Date().toISOString()}`);
     await startAutoTradeSession();
     return null;
     async function startAutoTradeSession() {
@@ -52,6 +57,7 @@ exports.executeAutoTrades = functions
         const result = await getData();
         if (result > 0) {
             await buildUnits();
+            await sendMessageToHeartbeatTopic('Preparing to start writing bids to BFN');
             await writeBids();
         }
         console.log(summary);
@@ -64,6 +70,7 @@ exports.executeAutoTrades = functions
         await updateAutoTradeStart();
         console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
+        await sendMessageToHeartbeatTopic(`AutoTrade Session complete, elapsed: ${summary.elapsedSeconds} seconds`);
         return response.status(200).send(summary);
     }
     async function writeBids() {
@@ -256,6 +263,7 @@ exports.executeAutoTrades = functions
     }
     async function getData() {
         console.log("################### getData ######################");
+        await sendMessageToHeartbeatTopic('Collecting auto trade base data');
         let qso;
         qso = await admin
             .firestore()
@@ -350,6 +358,7 @@ exports.executeAutoTrades = functions
             profiles.push(profile);
             console.log(`###### profile for: ${profile.name} minimumDiscount: ${profile.minimumDiscount} maxInvestableAmount: ${profile.maxInvestableAmount} maxInvoiceAmount: ${profile.maxInvoiceAmount} `);
         });
+        await sendMessageToHeartbeatTopic(`Completed data collection, about to build valid execution units`);
         return offers.length;
     }
     async function buildUnits() {
@@ -361,6 +370,7 @@ exports.executeAutoTrades = functions
             console.log(e);
             handleError("Matching fell down.");
         }
+        await sendMessageToHeartbeatTopic(`Matcher has created ${units.length} execution unit`);
         console.log(`++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${units.length}, offers : ${offers.length}`);
         return units;
     }
@@ -370,17 +380,17 @@ exports.executeAutoTrades = functions
             const j = Math.floor(Math.random() * (i + 1));
             [orders[i], orders[j]] = [orders[j], orders[i]];
         }
-        console.log("########## shuffled orders ........");
+        console.log("########## shuffled orders ........check above vs below.. wtf?");
         console.log(orders);
     }
     function shuffleOffers() {
-        console.log(offers);
+        // console.log(offers);
         for (let i = offers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [offers[i], offers[j]] = [offers[j], offers[i]];
         }
         console.log("########## shuffled offers ........");
-        console.log(offers);
+        // console.log(offers);
     }
     async function writeAutoTradeStart() {
         await admin
@@ -409,6 +419,25 @@ exports.executeAutoTrades = functions
         });
         console.log("################### updated AutoTradeStart ######################");
         return mf;
+    }
+    async function sendMessageToHeartbeatTopic(message) {
+        const hb = {
+            date: new Date().toISOString(),
+            message: message
+        };
+        const mTopic = `heartbeats`;
+        const payload = {
+            data: {
+                messageType: "HEARTBEAT",
+                json: JSON.stringify(hb)
+            },
+            notification: {
+                title: "Heartbeat",
+                body: "Heartbeat: " + message
+            }
+        };
+        console.log("sending heartbeat to topic: " + mTopic);
+        return await admin.messaging().sendToTopic(mTopic, payload);
     }
     function handleError(message) {
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);

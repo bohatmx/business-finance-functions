@@ -5,7 +5,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-// const Firestore = require("firestore");
 exports.supplierDashboard = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");
@@ -15,9 +14,15 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
         console.log("ERROR - request has no id");
         return response.status(400).send('request has no id');
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     console.log(`##### Incoming supplierId ${request.body.id}`);
     const supplierId = request.body.id;
     const result = {
@@ -94,7 +99,6 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
             });
             queryRef.docs.forEach(async (doc) => {
                 const offer = doc.data();
-                const offerRef = doc.ref;
                 result.totalOfferAmount += offer.offerAmount;
                 result.totalOffers++;
                 if (offer.isOpen === true) {

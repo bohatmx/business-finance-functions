@@ -14,9 +14,15 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
         console.log("ERROR - request has no body");
         return response.status(400).send("request has no body");
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;

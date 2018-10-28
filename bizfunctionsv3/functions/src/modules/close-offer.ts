@@ -14,9 +14,19 @@ export const closeOffer = functions.https.onRequest(
       console.log("ERROR - request has no body");
       return response.sendStatus(400);
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+     
+    
+    try {
+      const firestore = admin.firestore();
+      const settings = { /* your settings... */ timestampsInSnapshots: true };
+      firestore.settings(settings);
+      console.log(
+        "Firebase settings completed. Should be free of annoying messages from Google"
+      );
+    } catch (e) {
+      console.log(e);
+    }
+
 
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);

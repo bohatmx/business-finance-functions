@@ -7,7 +7,6 @@ import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
 const uuid = require("uuid/v1");
-// const Firestore = require("firestore");
 
 export const registerPurchaseOrder = functions.https.onRequest(
   async (request, response) => {
@@ -15,9 +14,18 @@ export const registerPurchaseOrder = functions.https.onRequest(
       console.log("ERROR - request has no body");
       return response.status(400).send("request has no body");
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+
+    try {
+      const firestore = admin.firestore();
+      const settings = { /* your settings... */ timestampsInSnapshots: true };
+      firestore.settings(settings);
+      console.log(
+        "Firebase settings completed. Should be free of annoying messages from Google"
+      );
+    } catch (e) {
+      console.log(e);
+    }
+
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
 
@@ -56,7 +64,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
       if (!data.purchaseOrderId) {
         data["purchaseOrderId"] = uuid();
       }
-      
+
       try {
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
@@ -71,8 +79,8 @@ export const registerPurchaseOrder = functions.https.onRequest(
     }
 
     async function writeToFirestore(mdata) {
-      mdata.intDate = new Date().getUTCMilliseconds()
-      mdata.date = new Date().toUTCString()
+      mdata.intDate = new Date().getUTCMilliseconds();
+      mdata.date = new Date().toUTCString();
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {
@@ -145,7 +153,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
             `*** Data successfully written to Firestore! ${ref2.path}`
           );
         }
-        console.log('Purchase Order processed OK... done!')
+        console.log("Purchase Order processed OK... done!");
         response.send(mdata);
       } catch (e) {
         console.log(e);
@@ -165,7 +173,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         response.status(400).send(payload);
       } catch (e) {
         console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send('Register PO failed');
+        response.status(400).send("Register PO failed");
       }
     }
   }

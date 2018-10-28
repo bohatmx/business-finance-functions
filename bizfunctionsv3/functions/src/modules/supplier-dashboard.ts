@@ -5,8 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-// const Firestore = require("firestore");
-
 export const supplierDashboard = functions.https.onRequest(
   async (request, response) => {
      if (!request.body) {
@@ -17,9 +15,18 @@ export const supplierDashboard = functions.https.onRequest(
       console.log("ERROR - request has no id");
       return response.status(400).send('request has no id');
     }
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+     
+   
+    try {
+      const firestore = admin.firestore();
+      const settings = { /* your settings... */ timestampsInSnapshots: true };
+      firestore.settings(settings);
+      console.log(
+        "Firebase settings completed. Should be free of annoying messages from Google"
+      );
+    } catch (e) {
+      console.log(e);
+    }
 
     console.log(`##### Incoming supplierId ${request.body.id}`);
 
@@ -111,7 +118,6 @@ export const supplierDashboard = functions.https.onRequest(
         
         queryRef.docs.forEach(async doc => {
           const offer = doc.data()
-          const offerRef = doc.ref
           result.totalOfferAmount += offer.offerAmount
           result.totalOffers++
           if (offer.isOpen === true) {

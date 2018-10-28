@@ -10,14 +10,19 @@ const MyComms = require("./axios-comms");
 const MyCrypto = require("./encryptor-util");
 const requestor = require("request");
 const validator = require("validator");
-// import * as Firestore from "firestore";
 const StellarSdk = require("stellar-sdk");
 exports.addParticipant = functions
     .runWith({ memory: "256MB", timeoutSeconds: 240 })
     .https.onRequest(async (request, response) => {
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     const errRes = {
         message: null,
         date: new Date().toISOString()

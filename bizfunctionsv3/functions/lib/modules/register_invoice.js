@@ -12,6 +12,15 @@ const uuid = require("uuid/v1");
 exports.registerInvoice = functions.https.onRequest(async (request, response) => {
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
+    try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+    }
+    catch (e) {
+        console.log(e);
+    }
     const debug = request.body.debug;
     const data = request.body.data;
     const apiSuffix = "RegisterInvoice";

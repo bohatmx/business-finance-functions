@@ -11,7 +11,12 @@ export const directWallet = functions.https.onRequest(async (request, response) 
 
     if (!request.body) {
         return response.sendStatus(500)
-    }
+    } 
+    const firestore = admin.firestore();
+    const settings = { /* your settings... */ timestampsInSnapshots: true };
+    firestore.settings(settings);
+    console.log('Firebase settings completed. Should be free of annoying messages from Google')
+
     console.log('Triggered by https request, creating wallet on Stellar: ' + JSON.stringify(request.body))
     let sourceSeed = ''
     if (request.body.sourceSeed) {

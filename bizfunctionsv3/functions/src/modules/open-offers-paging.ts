@@ -24,9 +24,19 @@ export const getOpenOffersWithPaging = functions.https.onRequest(
       pageLimit = request.body.pageLimit;
     }
 
-    // const firestore = new Firestore();
-    // const settings = { /* your settings... */ timestampsInSnapshots: true };
-    // firestore.settings(settings);
+     
+    
+    try {
+      const firestore = admin.firestore();
+      const settings = { /* your settings... */ timestampsInSnapshots: true };
+      firestore.settings(settings);
+      console.log(
+        "Firebase settings completed. Should be free of annoying messages from Google"
+      );
+    } catch (e) {
+      console.log(e);
+    }
+
 
     console.log(`##### Incoming date ${date}`);
     console.log(`##### Incoming pageLimit ${pageLimit}`);
