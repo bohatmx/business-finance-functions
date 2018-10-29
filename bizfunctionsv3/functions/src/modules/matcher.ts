@@ -12,19 +12,9 @@ export class Matcher {
     let pOffers: Data.Offer[] = offers;
     let loopCount = 0;
     const MAX_LOOPS: number = 3;
-    const MAX_UNITS: number = 100;
-    const invalidSummary = {
-      isValidInvoiceAmount: 0,
-      isValidBalance: 0,
-      isValidSector: 0,
-      isValidSupplier: 0,
-      isValidMinimumDiscount: 0,
-      isvalidInvestorMax: 0,
-      invalidTrades: 0,
-      totalOpenOffers: offers.length,
-      totalUnits: 0,
-      date: new Date().toISOString()
-    };
+    const MAX_UNITS: number = 50;
+    const invalidSummary: Data.InvalidSummary = new Data.InvalidSummary()
+    invalidSummary.date = new Date().toISOString()
     let start: number;
     let end: number;
 
@@ -51,10 +41,11 @@ export class Matcher {
       );
 
       for (const offer of pOffers) {
-        if (units.length > MAX_UNITS) {
+        if (units.length === MAX_UNITS) {
           await sendMessageToHeartbeatTopic(
             `Built all ALLOWABLE execution units: ${units.length}`
           );
+          shuffleUnits()
           return units;
         }
         for (const order of orders) {
@@ -65,6 +56,7 @@ export class Matcher {
           }
         }
       }
+      
       //create new offer list without the offers already taken
       const tempOffers: Data.Offer[] = [];
       for (const off of offers) {
@@ -117,12 +109,14 @@ export class Matcher {
           unit.profile = profile;
           unit.order = mOrder;
           units.push(unit);
+
+          invalidSummary.totalUnits++ 
           profile.totalBidAmount += mOffer.offerAmount;
-          await sendMessageToHeartbeatTopic(
-            `${unit.profile.name} found a match: ${
-              unit.offer.supplierName
-            } for ${unit.offer.offerAmount}`
-          );
+          // await sendMessageToHeartbeatTopic(
+          //   `${unit.profile.name} found a match: ${
+          //     unit.offer.supplierName
+          //   } for ${unit.offer.offerAmount}`
+          // );
           console.log(
             "## valid execution unit created and added to units: " +
               units.length );
@@ -169,7 +163,7 @@ export class Matcher {
       ) {
         isValidTotal = true;
       } else {
-        invalidSummary.isvalidInvestorMax++;
+        invalidSummary.isValidInvestorMax++;
       }
       if (
         offer.discountPercent > profile.minimumDiscount ||
@@ -288,6 +282,13 @@ export class Matcher {
         [offers[i], offers[j]] = [offers[j], offers[i]];
       }
       console.log("########## shuffled offers ........");
+    }
+    function shuffleUnits() {
+      for (let i = units.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [units[i], units[j]] = [units[j], units[i]];
+      }
+      console.log("########## shuffled units ........");
     }
   }
 }

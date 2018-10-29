@@ -509,4 +509,90 @@ Wallet = __decorate([
     json2typescript_1.JsonObject('Wallet')
 ], Wallet);
 exports.Wallet = Wallet;
+/*
+const invalidSummary = {
+      isValidInvoiceAmount: 0,
+      isValidBalance: 0,
+      isValidSector: 0,
+      isValidSupplier: 0,
+      isValidMinimumDiscount: 0,
+      isvalidInvestorMax: 0,
+      invalidTrades: 0,
+      totalOpenOffers: offers.length,
+      totalUnits: 0,
+      date: new Date().toISOString()
+    };
+*/
+let InvalidSummary = class InvalidSummary {
+    /*
+    const invalidSummary = {
+          isValidInvoiceAmount: 0,
+          isValidBalance: 0,
+          isValidSector: 0,
+          isValidSupplier: 0,
+          isValidMinimumDiscount: 0,
+          isvalidInvestorMax: 0,
+          invalidTrades: 0,
+          totalOpenOffers: offers.length,
+          totalUnits: 0,
+          date: new Date().toISOString()
+        };
+    */
+    constructor() {
+        this.isValidInvoiceAmount = 0;
+        this.isValidBalance = 0;
+        this.isValidSector = 0;
+        this.isValidSupplier = 0;
+        this.isValidMinimumDiscount = 0;
+        this.isValidInvestorMax = 0;
+        this.invalidTrades = 0;
+        this.totalOpenOffers = 0;
+        this.totalUnits = 0;
+        this.date = new Date().toISOString();
+    }
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidInvoiceAmount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidBalance", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidSector", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidSupplier", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidMinimumDiscount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "isValidInvestorMax", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "invalidTrades", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "totalOpenOffers", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], InvalidSummary.prototype, "totalUnits", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], InvalidSummary.prototype, "date", void 0);
+InvalidSummary = __decorate([
+    json2typescript_1.JsonObject('InvalidSummary')
+], InvalidSummary);
+exports.InvalidSummary = InvalidSummary;
 //# sourceMappingURL=data.js.map

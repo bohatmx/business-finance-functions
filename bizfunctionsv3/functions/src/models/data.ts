@@ -253,3 +253,41 @@ export class Wallet {
     stellarPublicKey: string;
 
 }
+/*
+const invalidSummary = {
+      isValidInvoiceAmount: 0,
+      isValidBalance: 0,
+      isValidSector: 0,
+      isValidSupplier: 0,
+      isValidMinimumDiscount: 0,
+      isvalidInvestorMax: 0,
+      invalidTrades: 0,
+      totalOpenOffers: offers.length,
+      totalUnits: 0,
+      date: new Date().toISOString()
+    };
+*/
+@JsonObject('InvalidSummary')
+export class InvalidSummary {
+    @JsonProperty()
+    isValidInvoiceAmount: number = 0;
+    @JsonProperty()
+    isValidBalance: number = 0;
+    @JsonProperty()
+    isValidSector: number = 0;
+    @JsonProperty()
+    isValidSupplier: number = 0;
+    @JsonProperty()
+    isValidMinimumDiscount: number = 0;
+    @JsonProperty()
+    isValidInvestorMax: number = 0;
+    @JsonProperty()
+    invalidTrades: number = 0;
+    @JsonProperty()
+    totalOpenOffers: number = 0;
+    @JsonProperty()
+    totalUnits: number = 0;
+    @JsonProperty()
+    date: string = new Date().toISOString();
+
+}

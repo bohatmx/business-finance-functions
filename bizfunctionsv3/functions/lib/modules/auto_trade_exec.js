@@ -57,6 +57,9 @@ exports.executeAutoTrades = functions
         const result = await getData();
         if (result > 0) {
             await buildUnits();
+            units.map(unit => {
+                summary.possibleAmount += unit.offer.offerAmount;
+            });
             await sendMessageToHeartbeatTopic('Preparing to start writing bids to BFN');
             await writeBids();
         }
@@ -301,9 +304,6 @@ exports.executeAutoTrades = functions
         else {
             console.log("### Open offers found: " + qso.docs.length);
         }
-        offers.map(offer => {
-            summary.possibleAmount += offer.offerAmount;
-        });
         shuffleOffers();
         ///////
         let qs;

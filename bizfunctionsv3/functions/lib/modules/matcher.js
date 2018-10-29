@@ -9,19 +9,9 @@ class Matcher {
         let pOffers = offers;
         let loopCount = 0;
         const MAX_LOOPS = 3;
-        const MAX_UNITS = 100;
-        const invalidSummary = {
-            isValidInvoiceAmount: 0,
-            isValidBalance: 0,
-            isValidSector: 0,
-            isValidSupplier: 0,
-            isValidMinimumDiscount: 0,
-            isvalidInvestorMax: 0,
-            invalidTrades: 0,
-            totalOpenOffers: offers.length,
-            totalUnits: 0,
-            date: new Date().toISOString()
-        };
+        const MAX_UNITS = 50;
+        const invalidSummary = new Data.InvalidSummary();
+        invalidSummary.date = new Date().toISOString();
         let start;
         let end;
         console.log("getting each profiles total existing bids ...");
@@ -41,8 +31,9 @@ class Matcher {
                 " offers outstanding: " +
                 pOffers.length);
             for (const offer of pOffers) {
-                if (units.length > MAX_UNITS) {
+                if (units.length === MAX_UNITS) {
                     await sendMessageToHeartbeatTopic(`Built all ALLOWABLE execution units: ${units.length}`);
+                    shuffleUnits();
                     return units;
                 }
                 for (const order of orders) {
@@ -98,8 +89,13 @@ class Matcher {
                     unit.profile = profile;
                     unit.order = mOrder;
                     units.push(unit);
+                    invalidSummary.totalUnits++;
                     profile.totalBidAmount += mOffer.offerAmount;
-                    await sendMessageToHeartbeatTopic(`${unit.profile.name} found a match: ${unit.offer.supplierName} for ${unit.offer.offerAmount}`);
+                    // await sendMessageToHeartbeatTopic(
+                    //   `${unit.profile.name} found a match: ${
+                    //     unit.offer.supplierName
+                    //   } for ${unit.offer.offerAmount}`
+                    // );
                     console.log("## valid execution unit created and added to units: " +
                         units.length);
                     return isValidBid;
@@ -142,7 +138,7 @@ class Matcher {
                 isValidTotal = true;
             }
             else {
-                invalidSummary.isvalidInvestorMax++;
+                invalidSummary.isValidInvestorMax++;
             }
             if (offer.discountPercent > profile.minimumDiscount ||
                 offer.discountPercent === profile.minimumDiscount) {
@@ -245,6 +241,13 @@ class Matcher {
                 [offers[i], offers[j]] = [offers[j], offers[i]];
             }
             console.log("########## shuffled offers ........");
+        }
+        function shuffleUnits() {
+            for (let i = units.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [units[i], units[j]] = [units[j], units[i]];
+            }
+            console.log("########## shuffled units ........");
         }
     }
 }
