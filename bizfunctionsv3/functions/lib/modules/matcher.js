@@ -14,6 +14,8 @@ class Matcher {
         invalidSummary.date = new Date().toISOString();
         let start;
         let end;
+        let orderIndex = 0;
+        let offerIndex = 0;
         console.log("getting each profiles total existing bids ...");
         for (const prof of profiles) {
             await getInvestorBidTotal(prof);
@@ -30,20 +32,12 @@ class Matcher {
                 units.length +
                 " offers outstanding: " +
                 pOffers.length);
-            for (const offer of pOffers) {
-                if (units.length === MAX_UNITS) {
-                    await sendMessageToHeartbeatTopic(`Built all ALLOWABLE execution units: ${units.length}`);
-                    shuffleUnits();
-                    return units;
-                }
-                for (const order of orders) {
-                    const isMatched = await findInvestorMatch(offer, order);
-                    if (isMatched) {
-                        console.log(`A match has been made: ${isMatched}`);
-                        break;
-                    }
-                }
+            orderIndex = 0;
+            offerIndex = 0;
+            if (units.length === MAX_UNITS || units.length > MAX_UNITS) {
+                return units;
             }
+            await control();
             //create new offer list without the offers already taken
             const tempOffers = [];
             for (const off of offers) {
@@ -71,38 +65,69 @@ class Matcher {
             }
             console.log("##### MATCHING COMPLETE: ########### units: see invalidSummary above ...");
             console.log(invalidSummary);
-            await admin.firestore().collection('invalidSummaries').add(invalidSummary).catch(e => {
+            await admin
+                .firestore()
+                .collection("invalidSummaries")
+                .add(invalidSummary.toJSON())
+                .catch(e => {
                 console.log(e);
             });
-            console.log('record written to /invalidSummaries on Firestore');
+            console.log("record written to /invalidSummaries on Firestore");
             return units;
         }
-        async function findInvestorMatch(mOffer, mOrder) {
-            for (const profile of profiles) {
-                start = new Date().getTime();
-                const isValidBid = await validate(profile, mOffer);
-                end = new Date().getTime();
-                //console.log(`One validation took ${(end - start) / 1000} seconds`);
-                if (isValidBid) {
-                    const unit = new Data.ExecutionUnit();
-                    unit.offer = mOffer;
-                    unit.profile = profile;
-                    unit.order = mOrder;
-                    units.push(unit);
-                    invalidSummary.totalUnits++;
-                    profile.totalBidAmount += mOffer.offerAmount;
-                    // await sendMessageToHeartbeatTopic(
-                    //   `${unit.profile.name} found a match: ${
-                    //     unit.offer.supplierName
-                    //   } for ${unit.offer.offerAmount}`
-                    // );
-                    console.log("## valid execution unit created and added to units: " +
-                        units.length);
-                    return isValidBid;
+        async function control() {
+            if (units.length === MAX_UNITS || units.length > MAX_UNITS) {
+                return null;
+            }
+            if (offerIndex === pOffers.length) {
+                return null;
+            }
+            if (orderIndex < orders.length) {
+                const isValid = await findInvestorMatch(pOffers[offerIndex], orders[orderIndex]);
+                if (isValid) {
+                    orderIndex++;
+                    offerIndex++;
+                    await control();
                 }
                 else {
-                    invalidSummary.invalidTrades++;
+                    orderIndex++;
+                    await control();
                 }
+            }
+            else {
+                orderIndex = 0;
+                offerIndex++;
+                if (offerIndex === pOffers.length) {
+                    return null;
+                }
+                await control();
+            }
+            return null;
+        }
+        async function findInvestorMatch(mOffer, mOrder) {
+            let profile;
+            profiles.forEach(p => {
+                if (mOrder.investorProfile ===
+                    `resource:com.oneconnect.biz.InvestorProfile#${p.profileId}`) {
+                    profile = p;
+                }
+            });
+            start = new Date().getTime();
+            const isValidBid = await validate(profile, mOffer);
+            end = new Date().getTime();
+            if (isValidBid) {
+                const unit = new Data.ExecutionUnit();
+                unit.offer = mOffer;
+                unit.profile = profile;
+                unit.order = mOrder;
+                units.push(unit);
+                invalidSummary.totalUnits++;
+                profile.totalBidAmount += mOffer.offerAmount;
+                console.log(`## valid execution unit created, units: ${units.length}, added for ${unit.profile.name}, amt: ${unit.offer.offerAmount}`);
+                return isValidBid;
+            }
+            else {
+                invalidSummary.invalidTrades++;
             }
             return false;
         }
@@ -235,6 +260,12 @@ class Matcher {
             //TODO - connect to Stellar/WorldWire here
             return true;
         }
+        function shuffleProfiles() {
+            for (let i = profiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [profiles[i], profiles[j]] = [profiles[j], profiles[i]];
+            }
+        }
         function shuffleOffers() {
             for (let i = offers.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -242,10 +273,10 @@ class Matcher {
             }
             console.log("########## shuffled offers ........");
         }
-        function shuffleUnits() {
-            for (let i = units.length - 1; i > 0; i--) {
+        function shuffleOrders() {
+            for (let i = orders.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [units[i], units[j]] = [units[j], units[i]];
+                [orders[i], orders[j]] = [orders[j], orders[i]];
             }
             console.log("########## shuffled units ........");
         }

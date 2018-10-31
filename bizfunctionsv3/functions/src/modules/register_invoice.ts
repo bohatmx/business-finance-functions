@@ -219,7 +219,6 @@ export const registerInvoice = functions.https.onRequest(
       try {
         const payload = {
           message: message,
-          data: request.body.data,
           date: new Date().toISOString()
         };
         console.log(payload);

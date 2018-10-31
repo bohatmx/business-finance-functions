@@ -21,11 +21,13 @@ import * as InvestorDashboard from './modules/investor-dashboard'
 import * as OpenOffersWithPaging from './modules/open-offers-paging'
 import * as InvalidSummariesAsCSV from './modules/invalid-summary-csv'
 import * as OpenOfferSummary from './modules/open-offers-summary'
+import * as InvestorSummary from './modules/investor-summary'
 
 admin.initializeApp();
 export const getInvalidSummariesCSV = InvalidSummariesAsCSV.getInvalidSummariesCSV
 export const getOpenOffersSummary = OpenOfferSummary.getOpenOffersSummary
 export const userAdded = UserAdded.userCreated
+export const getInvestorsSummary = InvestorSummary.getInvestorsSummary
 export const userDeleted = UserDeleted.userDeleted
 export const decryptor = Decryptor.decrypt
 export const encryptor = Encryptor.encrypt

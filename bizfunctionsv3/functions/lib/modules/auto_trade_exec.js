@@ -365,6 +365,9 @@ exports.executeAutoTrades = functions
         console.log("################### buildUnits ######################");
         try {
             units = await Matcher.Matcher.match(profiles, orders, offers);
+            if (units.length > 50) {
+                handleError('We gotta a big problem! units: ' + units.length);
+            }
         }
         catch (e) {
             console.log(e);

@@ -367,6 +367,44 @@ Supplier = __decorate([
     json2typescript_1.JsonObject('Supplier')
 ], Supplier);
 exports.Supplier = Supplier;
+let Investor = class Investor {
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "participantId", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "name", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "cellphone", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "email", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "documentReference", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "description", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "address", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Investor.prototype, "dateRegistered", void 0);
+Investor = __decorate([
+    json2typescript_1.JsonObject('Investor')
+], Investor);
+exports.Investor = Investor;
 let AutoTradeStart = class AutoTradeStart {
 };
 __decorate([
@@ -549,6 +587,20 @@ let InvalidSummary = class InvalidSummary {
         this.totalOpenOffers = 0;
         this.totalUnits = 0;
         this.date = new Date().toISOString();
+    }
+    toJSON() {
+        return {
+            isValidInvoiceAmount: this.isValidInvoiceAmount,
+            isValidBalance: this.isValidBalance,
+            isValidSector: this.isValidSector,
+            isValidSupplier: this.isValidSupplier,
+            isValidMinimumDiscount: this.isValidMinimumDiscount,
+            isValidInvestorMax: this.isValidInvestorMax,
+            invalidTrades: this.invalidTrades,
+            totalOpenOffers: this.totalOpenOffers,
+            totalUnits: this.totalUnits,
+            date: this.date
+        };
     }
 };
 __decorate([

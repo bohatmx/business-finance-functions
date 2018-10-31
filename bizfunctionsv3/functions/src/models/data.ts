@@ -172,6 +172,27 @@ export class Supplier {
     country: string;
 
 }
+@JsonObject('Investor')
+export class Investor {
+    @JsonProperty()
+    participantId: string;
+    @JsonProperty()
+    name: string;
+    @JsonProperty()
+    cellphone: string;
+    @JsonProperty()
+    email: string;
+    @JsonProperty()
+    documentReference: string;
+    @JsonProperty()
+    description: string;
+    @JsonProperty()
+    address: string;
+    @JsonProperty()
+    dateRegistered: string;
+   
+
+}
 @JsonObject('AutoTradeStart')
 export class AutoTradeStart {
     @JsonProperty()
@@ -289,5 +310,22 @@ export class InvalidSummary {
     totalUnits: number = 0;
     @JsonProperty()
     date: string = new Date().toISOString();
+
+    toJSON() {
+        return {
+            isValidInvoiceAmount: this.isValidInvoiceAmount,
+            isValidBalance: this.isValidBalance,
+            isValidSector: this.isValidSector,
+            isValidSupplier: this.isValidSupplier,
+            isValidMinimumDiscount: this.isValidMinimumDiscount,
+            isValidInvestorMax: this.isValidInvestorMax,
+            invalidTrades: this.invalidTrades,
+            totalOpenOffers: this.totalOpenOffers,
+            totalUnits: this.totalUnits,
+            date: this.date
+
+
+        }
+    }
 
 }
