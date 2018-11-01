@@ -141,7 +141,6 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
     }
     async function sendMessageToTopic(mdata) {
-        const topic = `offers`;
         const payload = {
             data: {
                 messageType: "OFFER",
@@ -152,6 +151,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 body: "Offer from " + mdata.supplierName + " amount: " + mdata.offerAmount
             }
         };
+        const topic = BFNConstants.Constants.TOPIC_OFFERS;
         console.log("sending Offer data to topic: " + topic);
         return await admin.messaging().sendToTopic(topic, payload);
     }

@@ -274,23 +274,6 @@ export class Wallet {
     stellarPublicKey: string;
 
 }
-/*
-String supplier, company, govtEntity, user;
-  String purchaseOrderId;
-  String date, deliveryDateRequired;
-  double amount;
-
-  String description;
-  String deliveryAddress;
-  String reference,
-      documentReference,
-      supplierDocumentRef,
-      supplierName,
-      govtDocumentRef,
-      companyDocumentRef;
-  String purchaseOrderNumber, purchaserName;
-  String purchaseOrderURL, contractURL;
- */
 @JsonObject('PurchaseOrder')
 export class PurchaseOrder {
     @JsonProperty()
@@ -318,25 +301,8 @@ export class PurchaseOrder {
     govtDocumentRef: string;
     @JsonProperty()
     documentReference: string
-
-    // toJSON() {
-    //     return {
-    //         isValidInvoiceAmount: this.isValidInvoiceAmount,
-    //         isValidBalance: this.isValidBalance,
-    //         isValidSector: this.isValidSector,
-    //         isValidSupplier: this.isValidSupplier,
-    //         isValidMinimumDiscount: this.isValidMinimumDiscount,
-    //         isValidInvestorMax: this.isValidInvestorMax,
-    //         invalidTrades: this.invalidTrades,
-    //         totalOpenOffers: this.totalOpenOffers,
-    //         totalUnits: this.totalUnits,
-    //         date: this.date
-
-
-    //     }
-    // }
-
 }
+
 
 
 @JsonObject('InvalidSummary')
@@ -380,4 +346,76 @@ export class InvalidSummary {
     }
 
 }
+/*
+String supplier,
+      purchaseOrder,
+      invoiceId,
+      deliveryNote,
+      company,
+      govtEntity,
+      wallet,
+      user,
+      invoiceNumber,
+      description,
+      reference,
+      documentReference,
+      supplierDocumentRef,
+      govtDocumentRef,
+      companyDocumentRef,
+      supplierContract,
+      contractDocumentRef,
+      contractURL,
+      companyInvoiceSettlement,
+      offer,
+      invoiceAcceptance,
+      deliveryAcceptance,
+      govtInvoiceSettlement,
+      supplierName;
+  bool isOnOffer, isSettled;
+  String date, datePaymentRequired;
+  String customerName, purchaseOrderNumber;
+  List<String> investorInvoiceSettlements;
+  double amount, totalAmount, valueAddedTax;
+
+*/
+@JsonObject('Invoice')
+export class Invoice {
+    @JsonProperty()
+    invoiceId: string;
+
+    @JsonProperty()
+    purchaseOrder: string;
+    @JsonProperty()
+    invoiceNumber: string;
+    @JsonProperty()
+    date: string;
+    @JsonProperty()
+    intDate: number;
+    @JsonProperty()
+    amount: number;
+    @JsonProperty()
+    purchaseOrderNumber: string;
+    @JsonProperty()
+    customerName: string;
+    @JsonProperty()
+    supplierName: string;
+    @JsonProperty()
+    govtEntity: string;
+    @JsonProperty()
+    totalAmount: number;
+    @JsonProperty()
+    valueAddedTax: number;
+    @JsonProperty()
+    supplier: string
+    @JsonProperty()
+    isOnOffer: boolean
+    @JsonProperty()
+    isSettled: boolean
+    @JsonProperty()
+    contractURL: string
+    @JsonProperty()
+    deliveryNote: string
+    
+}
+
 

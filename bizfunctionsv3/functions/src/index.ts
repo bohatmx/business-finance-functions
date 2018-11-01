@@ -23,8 +23,24 @@ import * as InvalidSummariesAsCSV from './modules/invalid-summary-csv'
 import * as OpenOfferSummary from './modules/open-offers-summary'
 import * as InvestorSummary from './modules/investor-summary'
 import * as PurchaseOrdersWithPaging from './modules/purchase-orders-paging'
+import * as InvoicesWithPaging from './modules/invoices-paging'
+import * as PurchaseOrderAdded from './modules/purchase-order-added'
+import * as DeliveryNoteAdded from './modules/delivery-note-added'
+import * as DeliveryAcceptedAdded from './modules/delivery-accepted-added'
+import * as InvoiceAcceptedAdded from './modules/invoice-accepted-added'
+import * as CustomerAdded from './modules/customer-added'
+import * as SupplierAdded from './modules/supplier-added'
+import * as InvestorAdded from './modules/investor-added'
 
 admin.initializeApp();
+export const customerAdded = CustomerAdded.customerAdded
+export const supplierAdded = SupplierAdded.supplierAdded
+export const investorAdded = InvestorAdded.investorAdded
+export const deliveryAcceptanceAdded = DeliveryAcceptedAdded.deliveryAcceptanceAdded
+export const invoiceAcceptanceAdded = InvoiceAcceptedAdded.invoiceAcceptanceAdded
+export const deliveryNoteAdded = DeliveryNoteAdded.deliveryNoteAdded
+export const purchaseOrderAdded = PurchaseOrderAdded.purchaseOrderAdded
+export const getInvoicesWithPaging = InvoicesWithPaging.getInvoicesWithPaging
 export const getPurchaseOrdersWithPaging = PurchaseOrdersWithPaging.getPurchaseOrdersWithPaging
 export const getInvalidSummariesCSV = InvalidSummariesAsCSV.getInvalidSummariesCSV
 export const getOpenOffersSummary = OpenOfferSummary.getOpenOffersSummary

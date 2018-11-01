@@ -38,6 +38,8 @@ export const supplierDashboard = functions.https.onRequest(
       totalOpenOfferAmount: 0.00,
       totalUnsettledBids: 0,
       totalUnsettledAmount: 0.00,
+      totalPurchaseOrderAmount: 0.00,
+      totalInvoiceAmount: 0.00,
       totalSettledBids: 0,
       totalSettledAmount: 0.00,
       totalBids: 0,
@@ -86,6 +88,9 @@ export const supplierDashboard = functions.https.onRequest(
           .get()
           .then(async qRef => {
             result.purchaseOrders = qRef.docs.length;
+            qRef.docs.forEach(doc => {
+              result.totalPurchaseOrderAmount += doc.data().amount
+            })
             await getInvoices();
           });
       } catch (e) {
@@ -104,6 +109,10 @@ export const supplierDashboard = functions.https.onRequest(
           .get()
           .then(async qRef => {
             result.invoices = qRef.docs.length;
+            qRef.docs.forEach(doc => {
+              result.totalInvoiceAmount += doc.data().amount
+            })
+
             await getOffers()
           });
       } catch (e) {

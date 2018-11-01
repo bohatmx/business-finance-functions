@@ -32,6 +32,8 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
         totalOpenOfferAmount: 0.00,
         totalUnsettledBids: 0,
         totalUnsettledAmount: 0.00,
+        totalPurchaseOrderAmount: 0.00,
+        totalInvoiceAmount: 0.00,
         totalSettledBids: 0,
         totalSettledAmount: 0.00,
         totalBids: 0,
@@ -78,6 +80,9 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
                 .get()
                 .then(async (qRef) => {
                 result.purchaseOrders = qRef.docs.length;
+                qRef.docs.forEach(doc => {
+                    result.totalPurchaseOrderAmount += doc.data().amount;
+                });
                 await getInvoices();
             });
         }
@@ -97,6 +102,9 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
                 .get()
                 .then(async (qRef) => {
                 result.invoices = qRef.docs.length;
+                qRef.docs.forEach(doc => {
+                    result.totalInvoiceAmount += doc.data().amount;
+                });
                 await getOffers();
             });
         }

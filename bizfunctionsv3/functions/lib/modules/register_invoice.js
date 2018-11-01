@@ -111,7 +111,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         }
     }
     async function sendMessageToTopic(mdata) {
-        const topic = `invoices`;
+        const topic = BFNConstants.Constants.TOPIC_INVOICES + mdata.govtEntity.split('#')[1];
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICES + 'admin';
         const payload = {
             data: {
                 messageType: "INVOICE",
@@ -125,7 +126,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     mdata.amount
             }
         };
-        console.log("sending invoice data to topic: " + topic);
+        console.log("sending invoice data to topic: " + topic + ' ' + topic2);
+        await admin.messaging().sendToTopic(topic2, payload);
         return await admin.messaging().sendToTopic(topic, payload);
     }
     async function checkAutoAccept(invoice) {

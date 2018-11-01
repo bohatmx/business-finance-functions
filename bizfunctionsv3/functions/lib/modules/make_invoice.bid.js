@@ -133,7 +133,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
                 console.log(`** Data successfully written to Firestore! ${ref2.path}`);
             }
             await checkTotalBids(docID, offerId);
-            await sendMessageToTopic(mdata);
+            await sendMessageToTopic(mdata, offerId);
             console.log("Everything seems OK. InvoiceBid done!");
             response.status(200).send(mdata);
         }
@@ -142,8 +142,9 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             handleError(e);
         }
     }
-    async function sendMessageToTopic(mdata) {
-        const topic = `invoiceBids`;
+    async function sendMessageToTopic(mdata, offerId) {
+        const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + 'admin';
         const payload = {
             data: {
                 messageType: "INVOICE_BID",
@@ -165,8 +166,9 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             const devices = [mdata.supplierFCMToken];
             await admin.messaging().sendToDevice(devices, payload);
         }
-        console.log("sending invoice bid data to topic: " + topic);
-        return await admin.messaging().sendToTopic(topic, payload);
+        console.log("sending invoice bid data to topics: " + topic + " " + topic2);
+        await admin.messaging().sendToTopic(topic, payload);
+        return await admin.messaging().sendToTopic(topic2, payload);
     }
     async function checkTotalBids(offerDocID, offerId) {
         console.log(`############ checkTotalBids ......... offerDocID: ${offerDocID}`);

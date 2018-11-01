@@ -547,23 +547,6 @@ Wallet = __decorate([
     json2typescript_1.JsonObject('Wallet')
 ], Wallet);
 exports.Wallet = Wallet;
-/*
-String supplier, company, govtEntity, user;
-  String purchaseOrderId;
-  String date, deliveryDateRequired;
-  double amount;
-
-  String description;
-  String deliveryAddress;
-  String reference,
-      documentReference,
-      supplierDocumentRef,
-      supplierName,
-      govtDocumentRef,
-      companyDocumentRef;
-  String purchaseOrderNumber, purchaserName;
-  String purchaseOrderURL, contractURL;
- */
 let PurchaseOrder = class PurchaseOrder {
 };
 __decorate([
@@ -690,4 +673,110 @@ InvalidSummary = __decorate([
     json2typescript_1.JsonObject('InvalidSummary')
 ], InvalidSummary);
 exports.InvalidSummary = InvalidSummary;
+/*
+String supplier,
+      purchaseOrder,
+      invoiceId,
+      deliveryNote,
+      company,
+      govtEntity,
+      wallet,
+      user,
+      invoiceNumber,
+      description,
+      reference,
+      documentReference,
+      supplierDocumentRef,
+      govtDocumentRef,
+      companyDocumentRef,
+      supplierContract,
+      contractDocumentRef,
+      contractURL,
+      companyInvoiceSettlement,
+      offer,
+      invoiceAcceptance,
+      deliveryAcceptance,
+      govtInvoiceSettlement,
+      supplierName;
+  bool isOnOffer, isSettled;
+  String date, datePaymentRequired;
+  String customerName, purchaseOrderNumber;
+  List<String> investorInvoiceSettlements;
+  double amount, totalAmount, valueAddedTax;
+
+*/
+let Invoice = class Invoice {
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "invoiceId", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "purchaseOrder", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "invoiceNumber", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "date", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], Invoice.prototype, "intDate", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], Invoice.prototype, "amount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "purchaseOrderNumber", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "customerName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "supplierName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "govtEntity", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], Invoice.prototype, "totalAmount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], Invoice.prototype, "valueAddedTax", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "supplier", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Boolean)
+], Invoice.prototype, "isOnOffer", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Boolean)
+], Invoice.prototype, "isSettled", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "contractURL", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Invoice.prototype, "deliveryNote", void 0);
+Invoice = __decorate([
+    json2typescript_1.JsonObject('Invoice')
+], Invoice);
+exports.Invoice = Invoice;
 //# sourceMappingURL=data.js.map
