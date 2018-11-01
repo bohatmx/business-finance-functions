@@ -140,7 +140,7 @@ exports.getOpenOffersWithPaging = functions.https.onRequest(async (request, resp
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);
         try {
             const payload = {
-                name: "investorDashboard",
+                name: "getOpenOffersWithPaging",
                 message: message,
                 date: new Date().toISOString()
             };

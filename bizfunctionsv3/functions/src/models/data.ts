@@ -275,19 +275,70 @@ export class Wallet {
 
 }
 /*
-const invalidSummary = {
-      isValidInvoiceAmount: 0,
-      isValidBalance: 0,
-      isValidSector: 0,
-      isValidSupplier: 0,
-      isValidMinimumDiscount: 0,
-      isvalidInvestorMax: 0,
-      invalidTrades: 0,
-      totalOpenOffers: offers.length,
-      totalUnits: 0,
-      date: new Date().toISOString()
-    };
-*/
+String supplier, company, govtEntity, user;
+  String purchaseOrderId;
+  String date, deliveryDateRequired;
+  double amount;
+
+  String description;
+  String deliveryAddress;
+  String reference,
+      documentReference,
+      supplierDocumentRef,
+      supplierName,
+      govtDocumentRef,
+      companyDocumentRef;
+  String purchaseOrderNumber, purchaserName;
+  String purchaseOrderURL, contractURL;
+ */
+@JsonObject('PurchaseOrder')
+export class PurchaseOrder {
+    @JsonProperty()
+    purchaseOrderId: string;
+
+    @JsonProperty()
+    supplier: string;
+    @JsonProperty()
+    govtEntity: string;
+    @JsonProperty()
+    date: string;
+    @JsonProperty()
+    intDate: number;
+    @JsonProperty()
+    amount: number;
+    @JsonProperty()
+    purchaseOrderNumber: string;
+    @JsonProperty()
+    purchaserName: string;
+    @JsonProperty()
+    supplierName: string;
+    @JsonProperty()
+    supplierDocumentRef: string;
+    @JsonProperty()
+    govtDocumentRef: string;
+    @JsonProperty()
+    documentReference: string
+
+    // toJSON() {
+    //     return {
+    //         isValidInvoiceAmount: this.isValidInvoiceAmount,
+    //         isValidBalance: this.isValidBalance,
+    //         isValidSector: this.isValidSector,
+    //         isValidSupplier: this.isValidSupplier,
+    //         isValidMinimumDiscount: this.isValidMinimumDiscount,
+    //         isValidInvestorMax: this.isValidInvestorMax,
+    //         invalidTrades: this.invalidTrades,
+    //         totalOpenOffers: this.totalOpenOffers,
+    //         totalUnits: this.totalUnits,
+    //         date: this.date
+
+
+    //     }
+    // }
+
+}
+
+
 @JsonObject('InvalidSummary')
 export class InvalidSummary {
     @JsonProperty()
@@ -329,3 +380,4 @@ export class InvalidSummary {
     }
 
 }
+

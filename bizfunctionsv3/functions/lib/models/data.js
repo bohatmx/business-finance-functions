@@ -548,34 +548,77 @@ Wallet = __decorate([
 ], Wallet);
 exports.Wallet = Wallet;
 /*
-const invalidSummary = {
-      isValidInvoiceAmount: 0,
-      isValidBalance: 0,
-      isValidSector: 0,
-      isValidSupplier: 0,
-      isValidMinimumDiscount: 0,
-      isvalidInvestorMax: 0,
-      invalidTrades: 0,
-      totalOpenOffers: offers.length,
-      totalUnits: 0,
-      date: new Date().toISOString()
-    };
-*/
+String supplier, company, govtEntity, user;
+  String purchaseOrderId;
+  String date, deliveryDateRequired;
+  double amount;
+
+  String description;
+  String deliveryAddress;
+  String reference,
+      documentReference,
+      supplierDocumentRef,
+      supplierName,
+      govtDocumentRef,
+      companyDocumentRef;
+  String purchaseOrderNumber, purchaserName;
+  String purchaseOrderURL, contractURL;
+ */
+let PurchaseOrder = class PurchaseOrder {
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "purchaseOrderId", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "supplier", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "govtEntity", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "date", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], PurchaseOrder.prototype, "intDate", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], PurchaseOrder.prototype, "amount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "purchaseOrderNumber", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "purchaserName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "supplierName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "supplierDocumentRef", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "govtDocumentRef", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], PurchaseOrder.prototype, "documentReference", void 0);
+PurchaseOrder = __decorate([
+    json2typescript_1.JsonObject('PurchaseOrder')
+], PurchaseOrder);
+exports.PurchaseOrder = PurchaseOrder;
 let InvalidSummary = class InvalidSummary {
-    /*
-    const invalidSummary = {
-          isValidInvoiceAmount: 0,
-          isValidBalance: 0,
-          isValidSector: 0,
-          isValidSupplier: 0,
-          isValidMinimumDiscount: 0,
-          isvalidInvestorMax: 0,
-          invalidTrades: 0,
-          totalOpenOffers: offers.length,
-          totalUnits: 0,
-          date: new Date().toISOString()
-        };
-    */
     constructor() {
         this.isValidInvoiceAmount = 0;
         this.isValidBalance = 0;

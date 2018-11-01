@@ -22,8 +22,10 @@ import * as OpenOffersWithPaging from './modules/open-offers-paging'
 import * as InvalidSummariesAsCSV from './modules/invalid-summary-csv'
 import * as OpenOfferSummary from './modules/open-offers-summary'
 import * as InvestorSummary from './modules/investor-summary'
+import * as PurchaseOrdersWithPaging from './modules/purchase-orders-paging'
 
 admin.initializeApp();
+export const getPurchaseOrdersWithPaging = PurchaseOrdersWithPaging.getPurchaseOrdersWithPaging
 export const getInvalidSummariesCSV = InvalidSummariesAsCSV.getInvalidSummariesCSV
 export const getOpenOffersSummary = OpenOfferSummary.getOpenOffersSummary
 export const userAdded = UserAdded.userCreated
