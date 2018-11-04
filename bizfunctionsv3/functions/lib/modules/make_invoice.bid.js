@@ -60,6 +60,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
             data["invoiceBidId"] = uuid();
         }
         try {
+            data.date = new Date().toISOString();
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             if (mresponse.status === 200) {
                 return writeToFirestore(mresponse.data);
@@ -76,6 +77,8 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
     async function writeToFirestore(mdata) {
         try {
             let mdocID;
+            mdata.intDate = new Date().getTime();
+            mdata.date = new Date().toISOString();
             const key = mdata.investor.split("#")[1];
             const snapshot = await admin
                 .firestore()
@@ -144,7 +147,7 @@ exports.makeInvoiceBid = functions.https.onRequest(async (request, response) => 
     }
     async function sendMessageToTopic(mdata, offerId) {
         const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
-        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + 'admin';
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + "admin";
         const payload = {
             data: {
                 messageType: "INVOICE_BID",

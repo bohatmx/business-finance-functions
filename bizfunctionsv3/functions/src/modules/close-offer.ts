@@ -14,8 +14,7 @@ export const closeOffer = functions.https.onRequest(
       console.log("ERROR - request has no body");
       return response.sendStatus(400);
     }
-     
-    
+
     try {
       const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -26,7 +25,6 @@ export const closeOffer = functions.https.onRequest(
     } catch (e) {
       console.log(e);
     }
-
 
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
@@ -85,6 +83,7 @@ export const closeOffer = functions.https.onRequest(
       try {
         let mdocID;
         let mData;
+
         const snapshot = await admin
           .firestore()
           .collection("invoiceOffers")

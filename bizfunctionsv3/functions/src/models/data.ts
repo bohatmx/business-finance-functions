@@ -243,19 +243,38 @@ export class ExecutionUnit {
     static ErrorInvalidTrade = 1;
     static ErrorBadBid = 2;
 }
-/*
-String stellarPublicKey;
-  String dateRegistered;
-  String name;
-  String govtEntity;
-  String company;
-  String supplier;
-  String procurementOffice;
-  String oneConnect;
-  String auditor, sourceSeed;
-  String bank, secret, fcmToken, encryptedSecret;
-  String investor, documentReference;
-*/
+@JsonObject('DeliveryNote')
+export class DeliveryNote {
+    @JsonProperty()
+    deliveryNoteId: string;
+    @JsonProperty()
+    govtEntity: string;
+    @JsonProperty()
+    user: string;
+    @JsonProperty()
+    supplier: string;
+    @JsonProperty()
+    supplierName: string;
+    @JsonProperty()
+    date: string;
+    @JsonProperty()
+    amount: number;
+    @JsonProperty()
+    vat: number;
+    @JsonProperty()
+    totalAmount: number;
+    @JsonProperty()
+    supplierDocumentRef: string;
+    @JsonProperty()
+    purchaseOrderNumber: string;
+    @JsonProperty()
+    customerName: string;
+    @JsonProperty()
+    purchaseOrder: string;
+    @JsonProperty()
+    intDate: number;
+
+}
 @JsonObject('Wallet')
 export class Wallet {
     @JsonProperty()

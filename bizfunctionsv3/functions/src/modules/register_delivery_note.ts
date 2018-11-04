@@ -66,6 +66,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         data["deliveryNoteId"] = uuid();
       }
       try {
+        data.date = new Date().toISOString()
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
@@ -82,8 +83,8 @@ export const registerDeliveryNote = functions.https.onRequest(
       }
     }
     async function writeToFirestore(mdata) {
-      mdata.intDate = new Date().getUTCMilliseconds();
-      mdata.date = new Date().toUTCString();
+      mdata.intDate = new Date().getTime();
+      mdata.date = new Date().toISOString();
       try {
         let mdocID;
         if (!mdata.govtDocumentRef) {

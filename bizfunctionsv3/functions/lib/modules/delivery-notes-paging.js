@@ -1,13 +1,13 @@
 "use strict";
 // ######################################################################
-// List Purchase Orders with Paging
+// List Delivery Notes with Paging
 // ######################################################################
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const Data = require("../models/data");
 // const Firestore = require("firestore");
-exports.getInvoicesWithPaging = functions.https.onRequest(async (request, response) => {
+exports.getDeliveryNotesWithPaging = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");
         return response.status(400).send("request has no body");
@@ -39,16 +39,16 @@ exports.getInvoicesWithPaging = functions.https.onRequest(async (request, respon
     console.log(`##### Incoming pageLimit ${pageLimit}`);
     console.log(`##### Incoming documentId ${documentId}`);
     console.log(`##### Incoming collection ${collection}`);
-    const invoices = [];
+    const deliveryNotes = [];
     const result = {
-        invoices: invoices,
-        totalInvoices: 0,
+        deliveryNotes: deliveryNotes,
+        totalDeliveryNotes: 0,
         totalAmount: 0.0,
         startedAfter: date
     };
-    await getInvoices();
+    await getDeliveryNotes();
     return response.status(200).send(result);
-    async function getInvoices() {
+    async function getDeliveryNotes() {
         let queryRef;
         if (date) {
             console.log("++++ we have a date for query " + date);
@@ -56,7 +56,7 @@ exports.getInvoicesWithPaging = functions.https.onRequest(async (request, respon
                 .firestore()
                 .collection(collection)
                 .doc(documentId)
-                .collection('invoices')
+                .collection('deliveryNotes')
                 .orderBy("intDate", "desc")
                 .startAfter(date)
                 .limit(pageLimit)
@@ -72,7 +72,7 @@ exports.getInvoicesWithPaging = functions.https.onRequest(async (request, respon
                 .firestore()
                 .collection(collection)
                 .doc(documentId)
-                .collection('invoices')
+                .collection('deliveryNotes')
                 .orderBy("intDate", "desc")
                 .limit(pageLimit)
                 .get()
@@ -83,28 +83,29 @@ exports.getInvoicesWithPaging = functions.https.onRequest(async (request, respon
         }
         try {
             queryRef.docs.forEach(doc => {
-                const invoice = new Data.Invoice();
+                const dn = new Data.DeliveryNote();
                 const data = doc.data();
-                invoice.purchaseOrder = data.purchaseOrder;
-                invoice.purchaseOrderNumber = data.purchaseOrderNumber;
-                invoice.supplier = data.supplier;
-                invoice.date = data.date;
-                invoice.govtEntity = data.govtEntity;
-                invoice.amount = data.amount;
-                invoice.isOnOffer = data.isOnOffer;
-                invoice.isSettled = data.isSettled;
-                invoice.totalAmount = data.totalAmount;
-                invoice.valueAddedTax = data.valueAddedTax;
-                invoice.customerName = data.customerName;
-                invoice.supplierName = data.supplierName;
-                invoice.deliveryNote = data.deliveryNote;
-                invoice.intDate = data.intDate;
-                result.totalAmount += invoice.amount;
-                result.totalInvoices++;
-                invoices.push(invoice);
+                dn.purchaseOrder = data.purchaseOrder;
+                dn.purchaseOrderNumber = data.purchaseOrderNumber;
+                dn.supplier = data.supplier;
+                dn.date = data.date;
+                dn.govtEntity = data.govtEntity;
+                dn.amount = data.amount;
+                dn.intDate = data.intDate;
+                dn.totalAmount = data.totalAmount;
+                dn.customerName = data.customerName;
+                dn.supplierName = data.supplierName;
+                dn.intDate = data.intDate;
+                dn.vat = data.vat;
+                dn.deliveryNoteId = data.deliveryNoteId;
+                dn.customerName = data.customerName;
+                dn.user = data.user;
+                result.totalAmount += dn.amount;
+                result.totalDeliveryNotes++;
+                deliveryNotes.push(dn);
             });
-            result.invoices = invoices;
-            console.log(`## page returned has ${invoices.length} invoices`);
+            result.deliveryNotes = deliveryNotes;
+            console.log(`## page returned has ${deliveryNotes.length} delivery notes`);
             return null;
         }
         catch (e) {
@@ -129,4 +130,4 @@ exports.getInvoicesWithPaging = functions.https.onRequest(async (request, respon
         }
     }
 });
-//# sourceMappingURL=invoices-paging.js.map
+//# sourceMappingURL=delivery-notes-paging.js.map

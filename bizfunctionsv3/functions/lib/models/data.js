@@ -500,19 +500,68 @@ ExecutionUnit = __decorate([
     json2typescript_1.JsonObject('ExecutionUnit')
 ], ExecutionUnit);
 exports.ExecutionUnit = ExecutionUnit;
-/*
-String stellarPublicKey;
-  String dateRegistered;
-  String name;
-  String govtEntity;
-  String company;
-  String supplier;
-  String procurementOffice;
-  String oneConnect;
-  String auditor, sourceSeed;
-  String bank, secret, fcmToken, encryptedSecret;
-  String investor, documentReference;
-*/
+let DeliveryNote = class DeliveryNote {
+};
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "deliveryNoteId", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "govtEntity", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "user", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "supplier", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "supplierName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "date", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], DeliveryNote.prototype, "amount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], DeliveryNote.prototype, "vat", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], DeliveryNote.prototype, "totalAmount", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "supplierDocumentRef", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "purchaseOrderNumber", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "customerName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], DeliveryNote.prototype, "purchaseOrder", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", Number)
+], DeliveryNote.prototype, "intDate", void 0);
+DeliveryNote = __decorate([
+    json2typescript_1.JsonObject('DeliveryNote')
+], DeliveryNote);
+exports.DeliveryNote = DeliveryNote;
 let Wallet = class Wallet {
 };
 __decorate([

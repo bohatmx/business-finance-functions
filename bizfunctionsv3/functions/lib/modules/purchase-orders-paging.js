@@ -21,7 +21,7 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
     if (request.body.pageLimit) {
         pageLimit = request.body.pageLimit;
     }
-    let collection = 'suppliers';
+    let collection = "suppliers";
     if (request.body.collection) {
         collection = request.body.collection;
     }
@@ -46,7 +46,9 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
         totalAmount: 0.0,
         startedAfter: date
     };
+    await countAllPurchaseOrders();
     await getPurchaseOrders();
+    console.log(result);
     return response.status(200).send(result);
     async function getPurchaseOrders() {
         let queryRef;
@@ -56,7 +58,7 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
                 .firestore()
                 .collection(collection)
                 .doc(documentId)
-                .collection('purchaseOrders')
+                .collection("purchaseOrders")
                 .orderBy("intDate", "desc")
                 .startAfter(date)
                 .limit(pageLimit)
@@ -72,7 +74,7 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
                 .firestore()
                 .collection(collection)
                 .doc(documentId)
-                .collection('purchaseOrders')
+                .collection("purchaseOrders")
                 .orderBy("intDate", "desc")
                 .limit(pageLimit)
                 .get()
@@ -93,13 +95,11 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
                 po.supplierDocumentRef = data.supplierDocumentRef;
                 po.govtDocumentRef = data.govtDocumentRef;
                 po.purchaseOrderNumber = data.purchaseOrderNumber;
-                po.documentReference = doc.ref.path.split('/')[1];
+                po.documentReference = doc.ref.path.split("/")[1];
                 po.purchaserName = data.purchaserName;
                 po.supplierName = data.supplierName;
                 po.supplierDocumentRef = data.supplierDocumentRef;
                 po.intDate = data.intDate;
-                result.totalAmount += po.amount;
-                result.totalPurchaseOrders++;
                 purchaseOrders.push(po);
             });
             result.purchaseOrders = purchaseOrders;
@@ -108,14 +108,32 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
         }
         catch (e) {
             console.log(e);
-            handleError("getOpenOffersWithPaging Query failed: " + e);
+            handleError("getPurchaseOrdersWithPaging Query failed: " + e);
         }
+    }
+    async function countAllPurchaseOrders() {
+        let querySnapshot;
+        querySnapshot = await admin
+            .firestore()
+            .collection(collection)
+            .doc(documentId)
+            .collection("purchaseOrders")
+            .get()
+            .catch(function (error) {
+            console.log(error);
+            handleError(error);
+        });
+        result.totalPurchaseOrders = querySnapshot.docs.length;
+        querySnapshot.forEach(snap => {
+            result.totalAmount += snap.data().amount;
+        });
+        return null;
     }
     function handleError(message) {
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);
         try {
             const payload = {
-                name: "getOpenOffersWithPaging",
+                name: "getPurchaseOrdersWithPaging",
                 message: message,
                 date: new Date().toISOString()
             };
@@ -124,7 +142,7 @@ exports.getPurchaseOrdersWithPaging = functions.https.onRequest(async (request, 
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send("getOpenOffersWithPaging Query Failed");
+            response.status(400).send("getPurchaseOrdersWithPaging Query Failed");
         }
     }
 });

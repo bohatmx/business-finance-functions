@@ -23,13 +23,12 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
     if (request.body.pageLimit) {
       pageLimit = request.body.pageLimit;
     }
-    let collection = 'suppliers'
+    let collection = "suppliers";
     if (request.body.collection) {
-      collection = request.body.collection
+      collection = request.body.collection;
     }
-    const documentId = request.body.documentId
+    const documentId = request.body.documentId;
 
-  
     try {
       const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -40,7 +39,6 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
     } catch (e) {
       console.log(e);
     }
-
 
     console.log(`##### Incoming date ${date}`);
     console.log(`##### Incoming pageLimit ${pageLimit}`);
@@ -55,8 +53,9 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
       startedAfter: date
     };
 
-    await getPurchaseOrders()
-    
+    await countAllPurchaseOrders();
+    await getPurchaseOrders();
+    console.log(result)
     return response.status(200).send(result);
 
     async function getPurchaseOrders() {
@@ -67,7 +66,7 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
           .firestore()
           .collection(collection)
           .doc(documentId)
-          .collection('purchaseOrders')      
+          .collection("purchaseOrders")
           .orderBy("intDate", "desc")
           .startAfter(date)
           .limit(pageLimit)
@@ -82,7 +81,7 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
           .firestore()
           .collection(collection)
           .doc(documentId)
-          .collection('purchaseOrders')
+          .collection("purchaseOrders")
           .orderBy("intDate", "desc")
           .limit(pageLimit)
           .get()
@@ -103,30 +102,47 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
           po.supplierDocumentRef = data.supplierDocumentRef;
           po.govtDocumentRef = data.govtDocumentRef;
           po.purchaseOrderNumber = data.purchaseOrderNumber;
-          po.documentReference = doc.ref.path.split('/')[1];
+          po.documentReference = doc.ref.path.split("/")[1];
           po.purchaserName = data.purchaserName;
           po.supplierName = data.supplierName;
           po.supplierDocumentRef = data.supplierDocumentRef;
           po.intDate = data.intDate;
-
-          result.totalAmount += po.amount
-          result.totalPurchaseOrders++
           purchaseOrders.push(po);
         });
-        result.purchaseOrders = purchaseOrders
-        console.log(`## page returned has ${purchaseOrders.length} purchase orders`);
+        result.purchaseOrders = purchaseOrders;
+        console.log(
+          `## page returned has ${purchaseOrders.length} purchase orders`
+        );
         return null;
       } catch (e) {
         console.log(e);
-        handleError("getOpenOffersWithPaging Query failed: " + e);
+        handleError("getPurchaseOrdersWithPaging Query failed: " + e);
       }
     }
-    
+    async function countAllPurchaseOrders() {
+      let querySnapshot;
+      querySnapshot = await admin
+        .firestore()
+        .collection(collection)
+        .doc(documentId)
+        .collection("purchaseOrders")
+        .get()
+        .catch(function(error) {
+          console.log(error);
+          handleError(error);
+        });
+
+      result.totalPurchaseOrders = querySnapshot.docs.length;
+      querySnapshot.forEach(snap => {
+         result.totalAmount += snap.data().amount;
+      })
+      return null;
+    }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
       try {
         const payload = {
-          name: "getOpenOffersWithPaging",
+          name: "getPurchaseOrdersWithPaging",
           message: message,
           date: new Date().toISOString()
         };
@@ -134,7 +150,7 @@ export const getPurchaseOrdersWithPaging = functions.https.onRequest(
         response.status(400).send(payload);
       } catch (e) {
         console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send("getOpenOffersWithPaging Query Failed");
+        response.status(400).send("getPurchaseOrdersWithPaging Query Failed");
       }
     }
   }

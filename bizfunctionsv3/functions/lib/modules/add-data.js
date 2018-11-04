@@ -75,8 +75,8 @@ exports.addData = functions
     async function writeToFirestore(mdata) {
         console.log("### writeToFirestore ###################### data:\n " +
             JSON.stringify(mdata));
-        mdata.intDate = new Date().getUTCMilliseconds();
-        mdata.date = new Date().toUTCString();
+        mdata.intDate = new Date().getTime();
+        mdata.date = new Date().toISOString();
         try {
             const reference = await admin
                 .firestore()

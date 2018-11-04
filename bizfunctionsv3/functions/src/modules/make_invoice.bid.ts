@@ -15,8 +15,7 @@ export const makeInvoiceBid = functions.https.onRequest(
       console.log("ERROR - request has no body");
       return response.status(400).send("request has no body");
     }
-     
-    
+
     try {
       const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -27,7 +26,6 @@ export const makeInvoiceBid = functions.https.onRequest(
     } catch (e) {
       console.log(e);
     }
-
 
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
@@ -67,16 +65,17 @@ export const makeInvoiceBid = functions.https.onRequest(
       }
 
       if (!data.invoiceBidId) {
-          data["invoiceBidId"] = uuid();
+        data["invoiceBidId"] = uuid();
       }
-      
+
       try {
+        data.date = new Date().toISOString();
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
           console.log(`** BFN ERROR ## ${mresponse.data}`);
-          handleError(mresponse)
+          handleError(mresponse);
         }
       } catch (error) {
         handleError(error);
@@ -84,10 +83,10 @@ export const makeInvoiceBid = functions.https.onRequest(
     }
 
     async function writeToFirestore(mdata) {
-      
       try {
         let mdocID;
-
+        mdata.intDate = new Date().getTime();
+        mdata.date = new Date().toISOString();
         const key = mdata.investor.split("#")[1];
         const snapshot = await admin
           .firestore()
@@ -123,14 +122,14 @@ export const makeInvoiceBid = functions.https.onRequest(
 
         const offerId = mdata.offer.split("#")[1];
         let msnapshot;
-         msnapshot = await admin
+        msnapshot = await admin
           .firestore()
           .collection("invoiceOffers")
           .where("offerId", "==", offerId)
           .get()
           .catch(function(error) {
             console.log(error);
-            handleError(error)
+            handleError(error);
           });
         msnapshot.forEach(doc => {
           docID = doc.id;
@@ -163,8 +162,8 @@ export const makeInvoiceBid = functions.https.onRequest(
       }
     }
     async function sendMessageToTopic(mdata, offerId) {
-      const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId
-      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + 'admin'
+      const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
+      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + "admin";
       const payload = {
         data: {
           messageType: "INVOICE_BID",
@@ -189,7 +188,9 @@ export const makeInvoiceBid = functions.https.onRequest(
         const devices = [mdata.supplierFCMToken];
         await admin.messaging().sendToDevice(devices, payload);
       }
-      console.log("sending invoice bid data to topics: " + topic + " " + topic2);
+      console.log(
+        "sending invoice bid data to topics: " + topic + " " + topic2
+      );
       await admin.messaging().sendToTopic(topic, payload);
       return await admin.messaging().sendToTopic(topic2, payload);
     }

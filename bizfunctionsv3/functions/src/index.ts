@@ -31,8 +31,12 @@ import * as InvoiceAcceptedAdded from './modules/invoice-accepted-added'
 import * as CustomerAdded from './modules/customer-added'
 import * as SupplierAdded from './modules/supplier-added'
 import * as InvestorAdded from './modules/investor-added'
+import * as CustomerDashboard from './modules/customer-dashboard'
+import * as DeliveryNotesWithPaging from './modules/delivery-notes-paging'
 
 admin.initializeApp();
+export const getDeliveryNotesWithPaging = DeliveryNotesWithPaging.getDeliveryNotesWithPaging
+export const customerDashboard = CustomerDashboard.customerDashboard
 export const customerAdded = CustomerAdded.customerAdded
 export const supplierAdded = SupplierAdded.supplierAdded
 export const investorAdded = InvestorAdded.investorAdded

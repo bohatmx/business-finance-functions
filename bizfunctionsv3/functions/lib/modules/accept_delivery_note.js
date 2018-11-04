@@ -36,10 +36,6 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             console.log("ERROR - request has no body");
             return response.status(400).send("request has no body");
         }
-        // if (!request.body.debug) {
-        //   console.log("ERROR - request has no debug flag");
-        //   return response.status(400).send(" request has no debug flag");
-        // }
         if (!request.body.data) {
             console.log("ERROR - request has no data");
             return response.status(400).send(" request has no data");
@@ -57,6 +53,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
         if (!data.acceptanceId) {
             data["acceptanceId"] = uuid();
         }
+        data.date = new Date().toISOString();
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             if (mresponse.status === 200) {
@@ -73,8 +70,8 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
         }
     }
     async function writeToFirestore(mdata) {
-        mdata.intDate = new Date().getUTCMilliseconds();
-        mdata.date = new Date().toUTCString();
+        mdata.intDate = new Date().getTime();
+        mdata.date = new Date().toISOString();
         try {
             let mdocID;
             if (!mdata.govtDocumentRef) {

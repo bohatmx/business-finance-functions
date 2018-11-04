@@ -1,5 +1,5 @@
 // ######################################################################
-// List Purchase Orders with Paging
+// List Delivery Notes with Paging
 // ######################################################################
 
 import * as functions from "firebase-functions";
@@ -8,7 +8,7 @@ import * as Data from "../models/data";
 
 // const Firestore = require("firestore");
 
-export const getInvoicesWithPaging = functions.https.onRequest(
+export const getDeliveryNotesWithPaging = functions.https.onRequest(
   async (request, response) => {
     if (!request.body) {
       console.log("ERROR - request has no body");
@@ -47,19 +47,19 @@ export const getInvoicesWithPaging = functions.https.onRequest(
     console.log(`##### Incoming documentId ${documentId}`);
     console.log(`##### Incoming collection ${collection}`);
 
-    const invoices: Data.Invoice[] = [];
+    const deliveryNotes: Data.DeliveryNote[] = [];
     const result = {
-      invoices: invoices,
-      totalInvoices: 0,
+      deliveryNotes: deliveryNotes,
+      totalDeliveryNotes: 0,
       totalAmount: 0.0,
       startedAfter: date
     };
 
-    await getInvoices()
+    await getDeliveryNotes()
     
     return response.status(200).send(result);
 
-    async function getInvoices() {
+    async function getDeliveryNotes() {
       let queryRef;
       if (date) {
         console.log("++++ we have a date for query " + date);
@@ -67,7 +67,7 @@ export const getInvoicesWithPaging = functions.https.onRequest(
           .firestore()
           .collection(collection)
           .doc(documentId)
-          .collection('invoices')      
+          .collection('deliveryNotes')      
           .orderBy("intDate", "desc")
           .startAfter(date)
           .limit(pageLimit)
@@ -82,7 +82,7 @@ export const getInvoicesWithPaging = functions.https.onRequest(
           .firestore()
           .collection(collection)
           .doc(documentId)
-          .collection('invoices')
+          .collection('deliveryNotes')
           .orderBy("intDate", "desc")
           .limit(pageLimit)
           .get()
@@ -93,29 +93,29 @@ export const getInvoicesWithPaging = functions.https.onRequest(
       }
       try {
         queryRef.docs.forEach(doc => {
-          const invoice: Data.Invoice = new Data.Invoice();
+          const dn: Data.DeliveryNote = new Data.DeliveryNote();
           const data = doc.data();
-          invoice.purchaseOrder = data.purchaseOrder;
-          invoice.purchaseOrderNumber = data.purchaseOrderNumber;
-          invoice.supplier = data.supplier;
-          invoice.date = data.date;
-          invoice.govtEntity = data.govtEntity;
-          invoice.amount = data.amount;
-          invoice.isOnOffer = data.isOnOffer;
-          invoice.isSettled = data.isSettled;
-          invoice.totalAmount = data.totalAmount;
-          invoice.valueAddedTax = data.valueAddedTax;
-          invoice.customerName = data.customerName;
-          invoice.supplierName = data.supplierName;
-          invoice.deliveryNote = data.deliveryNote;
-          invoice.intDate = data.intDate;
-
-          result.totalAmount += invoice.amount
-          result.totalInvoices++
-          invoices.push(invoice);
+          dn.purchaseOrder = data.purchaseOrder;
+          dn.purchaseOrderNumber = data.purchaseOrderNumber;
+          dn.supplier = data.supplier;
+          dn.date = data.date;
+          dn.govtEntity = data.govtEntity;
+          dn.amount = data.amount;
+          dn.intDate = data.intDate;
+          dn.totalAmount = data.totalAmount;
+          dn.customerName = data.customerName;
+          dn.supplierName = data.supplierName;
+          dn.intDate = data.intDate;
+          dn.vat = data.vat
+          dn.deliveryNoteId = data.deliveryNoteId
+          dn.customerName = data.customerName
+          dn.user = data.user
+          result.totalAmount += dn.amount;
+          result.totalDeliveryNotes++
+          deliveryNotes.push(dn);
         });
-        result.invoices = invoices
-        console.log(`## page returned has ${invoices.length} invoices`);
+        result.deliveryNotes = deliveryNotes
+        console.log(`## page returned has ${deliveryNotes.length} delivery notes`);
         return null;
       } catch (e) {
         console.log(e);
