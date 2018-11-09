@@ -32,6 +32,9 @@ firebase firestore:delete /investorProfiles -r -y
 echo firebase firestore:delete /autoTradeStarts -r -y
 firebase firestore:delete /autoTradeStarts -r -y
 
+echo firebase firestore:delete /autoTradeOrders -r -y
+firebase firestore:delete /autoTradeOrders -r -y
+
 echo firebase firestore:delete /invalidSummaries -r -y
 firebase firestore:delete /invalidSummaries -r -y
 

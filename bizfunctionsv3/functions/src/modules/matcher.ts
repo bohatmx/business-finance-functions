@@ -126,6 +126,11 @@ export class Matcher {
       mOffer: Data.Offer,
       mOrder: Data.AutoTradeOrder
     ) {
+      // console.log(
+      //   `find match for ${mOrder.investorName} --> ${mOffer.supplierName} ${
+      //     mOffer.offerAmount
+      //   } profiles: ${profiles.length}`
+      // );
       let profile;
       profiles.forEach(p => {
         if (
@@ -135,7 +140,10 @@ export class Matcher {
           profile = p;
         }
       });
-
+      if (profile === null) {
+        console.log(`#### profile is NULL for ${mOrder.investorName}`);
+        return false;
+      }
       start = new Date().getTime();
       const isValidBid: Boolean = await validate(profile, mOffer);
       end = new Date().getTime();
@@ -182,6 +190,9 @@ export class Matcher {
       return await admin.messaging().sendToTopic(topic, payload);
     }
     async function validate(profile: Data.InvestorProfile, offer: Data.Offer) {
+      if (profile === null) {
+        return false;
+      }
       let isValidTotal = false;
       const isValidSupplier = isWithinSupplierList(profile, offer);
       const isValidSector = isWithinSectorList(profile, offer);
@@ -268,43 +279,70 @@ export class Matcher {
       profile: Data.InvestorProfile,
       offer: Data.Offer
     ) {
-      if (!profile.suppliers) {
+      try {
+        if (profile === null) {
+          return true;
+        }
+        if (!profile.suppliers) {
+          return true;
+        }
+        let isSupplierOK = false;
+        profile.suppliers.forEach(supplier => {
+          if (
+            offer.supplier ===
+            `resource:com.oneconnect.biz.Supplier#${supplier.split("#")[1]}`
+          ) {
+            isSupplierOK = true;
+          }
+        });
+        if (!isSupplierOK) {
+          invalidSummary.isValidSupplier++;
+        }
+        return isSupplierOK;
+      } catch (e) {
+        console.log(e);
+        console.log(
+          `FAILED: supplier validation - for ${
+            offer.supplierName
+          } ${offer.offerAmount}`
+        );
+
         return true;
       }
-      let isSupplierOK = false;
-      profile.suppliers.forEach(supplier => {
-        if (
-          offer.supplier ===
-          `resource:com.oneconnect.biz.Supplier#${supplier.split("#")[1]}`
-        ) {
-          isSupplierOK = true;
-        }
-      });
-      if (!isSupplierOK) {
-        invalidSummary.isValidSupplier++;
-      }
-      return isSupplierOK;
     }
     function isWithinSectorList(
       profile: Data.InvestorProfile,
       offer: Data.Offer
     ) {
-      if (!profile.sectors) {
+      try {
+        if (profile === null) {
+          return true;
+        }
+        if (!profile.sectors) {
+          return true;
+        }
+        let isSectorOK = false;
+        profile.sectors.forEach(sector => {
+          if (
+            offer.sector ===
+            `resource:com.oneconnect.biz.Sector#${sector.split("#")[1]}`
+          ) {
+            isSectorOK = true;
+          }
+        });
+        if (!isSectorOK) {
+          invalidSummary.isValidSector++;
+        }
+        return isSectorOK;
+      } catch (e) {
+        console.log(e);
+        console.log(
+          `FAILED: sector validation for ${
+            offer.supplierName
+          } ${offer.offerAmount}`
+        );
         return true;
       }
-      let isSectorOK = false;
-      profile.sectors.forEach(sector => {
-        if (
-          offer.sector ===
-          `resource:com.oneconnect.biz.Sector#${sector.split("#")[1]}`
-        ) {
-          isSectorOK = true;
-        }
-      });
-      if (!isSectorOK) {
-        invalidSummary.isValidSector++;
-      }
-      return isSectorOK;
     }
     async function isAccountBalanceOK(profile: Data.InvestorProfile) {
       //TODO - connect to Stellar/WorldWire here
