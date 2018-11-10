@@ -244,6 +244,9 @@ class Matcher {
                 if (!profile.suppliers) {
                     return true;
                 }
+                if (profile.suppliers.length === 0) {
+                    return true;
+                }
                 let isSupplierOK = false;
                 profile.suppliers.forEach(supplier => {
                     if (offer.supplier ===
@@ -268,6 +271,9 @@ class Matcher {
                     return true;
                 }
                 if (!profile.sectors) {
+                    return true;
+                }
+                if (profile.sectors.length === 0) {
                     return true;
                 }
                 let isSectorOK = false;
