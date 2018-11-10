@@ -314,6 +314,7 @@ export const executeAutoTrades = functions
         .firestore()
         .collection("invoiceOffers")
         .where("isOpen", "==", true)
+        .orderBy('date')
         .get()
         .catch(e => {
           console.log(e);

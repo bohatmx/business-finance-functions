@@ -20,7 +20,7 @@ class Matcher {
         for (const prof of profiles) {
             await getInvestorBidTotal(prof);
         }
-        shuffleOffers();
+        shuffleOrders();
         await initializeLoop();
         console.log("initializeLoop: Returning execution units to caller, units: " +
             units.length);
@@ -59,7 +59,7 @@ class Matcher {
                 MAX_LOOPS);
             if (invalidSummary.invalidTrades > 0) {
                 if (loopCount < MAX_LOOPS) {
-                    shuffleOffers();
+                    shuffleOrders();
                     await initializeLoop();
                 }
             }
@@ -292,25 +292,25 @@ class Matcher {
             //TODO - connect to Stellar/WorldWire here
             return true;
         }
-        function shuffleProfiles() {
-            for (let i = profiles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [profiles[i], profiles[j]] = [profiles[j], profiles[i]];
-            }
-        }
-        function shuffleOffers() {
-            for (let i = offers.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [offers[i], offers[j]] = [offers[j], offers[i]];
-            }
-            console.log("########## shuffled offers ........");
-        }
+        // function shuffleProfiles() {
+        //   for (let i = profiles.length - 1; i > 0; i--) {
+        //     const j = Math.floor(Math.random() * (i + 1));
+        //     [profiles[i], profiles[j]] = [profiles[j], profiles[i]];
+        //   }
+        // }
+        // function shuffleOffers() {
+        //   for (let i = offers.length - 1; i > 0; i--) {
+        //     const j = Math.floor(Math.random() * (i + 1));
+        //     [offers[i], offers[j]] = [offers[j], offers[i]];
+        //   }
+        //   console.log("########## shuffled offers ........");
+        // }
         function shuffleOrders() {
             for (let i = orders.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [orders[i], orders[j]] = [orders[j], orders[i]];
             }
-            console.log("########## shuffled units ........");
+            console.log("########## shuffled orders ........");
         }
     }
 }
