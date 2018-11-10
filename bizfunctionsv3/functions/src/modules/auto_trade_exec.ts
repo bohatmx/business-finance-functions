@@ -204,11 +204,12 @@ export const executeAutoTrades = functions
       );
       summary.totalAmount += bid.amount;
       summary.totalValidBids++;
-      await sendMessageToTopic(bid);
+      await sendMessageToTopic(bid, offerId);
       return await closeOfferOnBFN(offerId);
     }
-    async function sendMessageToTopic(mdata) {
-      const mTopic = `invoiceBids`;
+    async function sendMessageToTopic(mdata, offerId) {
+      const mTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
+      const pTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
       const payload = {
         data: {
           messageType: "INVOICE_BID",
@@ -233,7 +234,8 @@ export const executeAutoTrades = functions
         const devices = [mdata.supplierFCMToken];
         await admin.messaging().sendToDevice(devices, payload);
       }
-      console.log("sending invoice bid data to topic: " + mTopic);
+      console.log("## sending invoice bid data to topics: " + mTopic + ' - ' + pTopic);
+      await admin.messaging().sendToTopic(pTopic, payload);
       return await admin.messaging().sendToTopic(mTopic, payload);
     }
     async function closeOfferOnBFN(offerId) {
@@ -260,7 +262,7 @@ export const executeAutoTrades = functions
         console.log(`*** BFN ERROR ###status: ${blockchainResponse.status}`);
         handleError(blockchainResponse);
       }
-    }
+    } 
     async function closeOfferOnFirestore(offerId) {
       let mdocID;
       let mData;

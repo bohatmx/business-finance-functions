@@ -163,7 +163,7 @@ export const makeInvoiceBid = functions.https.onRequest(
     }
     async function sendMessageToTopic(mdata, offerId) {
       const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
-      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + "admin";
+      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
       const payload = {
         data: {
           messageType: "INVOICE_BID",
