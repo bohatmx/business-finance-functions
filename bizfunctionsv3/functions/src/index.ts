@@ -33,13 +33,26 @@ import * as SupplierAdded from './modules/supplier-added'
 import * as InvestorAdded from './modules/investor-added'
 import * as CustomerDashboard from './modules/customer-dashboard'
 import * as DeliveryNotesWithPaging from './modules/delivery-notes-paging'
+import * as PeachRequestCheckoutId from './modules/request-checkout-id'
+import * as PeachReceiveNotification from './modules/peach-notification'
+import * as PeachSuccess from './modules/peach-success'
+import * as PeachError from './modules/peach-error'
+import * as PeachCancel from './modules/peach-cancel'
 
 admin.initializeApp();
+
+export const peachCancel = PeachCancel.peachCancel
+export const peachError = PeachError.peachError
+export const peachSuccess = PeachSuccess.peachSuccess
+export const peachNotify = PeachReceiveNotification.peachNotify
+
+export const requestCheckOutId = PeachRequestCheckoutId.requestCheckOutId
 export const getDeliveryNotesWithPaging = DeliveryNotesWithPaging.getDeliveryNotesWithPaging
 export const customerDashboard = CustomerDashboard.customerDashboard
 export const customerAdded = CustomerAdded.customerAdded
 export const supplierAdded = SupplierAdded.supplierAdded
 export const investorAdded = InvestorAdded.investorAdded
+
 export const deliveryAcceptanceAdded = DeliveryAcceptedAdded.deliveryAcceptanceAdded
 export const invoiceAcceptanceAdded = InvoiceAcceptedAdded.invoiceAcceptanceAdded
 export const deliveryNoteAdded = DeliveryNoteAdded.deliveryNoteAdded
@@ -48,12 +61,14 @@ export const getInvoicesWithPaging = InvoicesWithPaging.getInvoicesWithPaging
 export const getPurchaseOrdersWithPaging = PurchaseOrdersWithPaging.getPurchaseOrdersWithPaging
 export const getInvalidSummariesCSV = InvalidSummariesAsCSV.getInvalidSummariesCSV
 export const getOpenOffersSummary = OpenOfferSummary.getOpenOffersSummary
+
 export const userAdded = UserAdded.userCreated
 export const getInvestorsSummary = InvestorSummary.getInvestorsSummary
 export const userDeleted = UserDeleted.userDeleted
 export const decryptor = Decryptor.decrypt
 export const encryptor = Encryptor.encrypt
 export const directWallet = DirectWallet.directWallet
+
 export const addData = AddData.addData
 export const registerPurchaseOrder = RegisterPurchaseOrder.registerPurchaseOrder
 export const registerDeliveryNote = RegisterDeliveryNote.registerDeliveryNote
@@ -61,6 +76,7 @@ export const registerInvoice = RegisterInvoice.registerInvoice
 export const acceptDeliveryNote = AcceptDelivery.acceptDeliveryNote
 export const makeOffer = MakeOffer.makeOffer
 export const closeOffer = CloseOffer.closeOffer
+
 export const acceptInvoice = AcceptInvoice.acceptInvoice
 export const makeInvoiceBid = MakeInvoiceBid.makeInvoiceBid
 export const executeAutoTrade = ExecuteAutoTrade.executeAutoTrades
