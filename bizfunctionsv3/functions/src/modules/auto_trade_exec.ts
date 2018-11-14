@@ -135,8 +135,8 @@ export const executeAutoTrades = functions
         investorName: unit.order.investorName,
         wallet: unit.order.wallet,
         date: new Date().toISOString(),
-        discountPercent: unit.offer.discountPercent,
         isSettled: false,
+        supplier: unit.offer.supplier,
         startTime: new Date().toISOString(),
         endTime: new Date().toISOString()
       };

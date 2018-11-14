@@ -28,6 +28,7 @@ Constants.TOPIC_OFFERS = "offers";
 Constants.TOPIC_AUTO_TRADES = "autoTrades";
 Constants.TOPIC_GENERAL_MESSAGE = "messages";
 Constants.TOPIC_INVOICE_BIDS = "invoiceBids";
+Constants.TOPIC_INVESTOR_INVOICE_SETTLEMENTS = "investorInvoiceSettlements";
 Constants.TOPIC_SUPPLIERS = "suppliers";
 Constants.TOPIC_CUSTOMERS = "customers";
 Constants.TOPIC_INVESTORS = "investors";

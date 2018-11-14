@@ -23,6 +23,7 @@ export class Constants {
   static TOPIC_AUTO_TRADES = "autoTrades";
   static TOPIC_GENERAL_MESSAGE = "messages";
   static TOPIC_INVOICE_BIDS = "invoiceBids";
+  static TOPIC_INVESTOR_INVOICE_SETTLEMENTS = "investorInvoiceSettlements";
   static TOPIC_SUPPLIERS = "suppliers";
   static TOPIC_CUSTOMERS = "customers";
   static TOPIC_INVESTORS = "investors";

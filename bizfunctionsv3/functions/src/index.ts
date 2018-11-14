@@ -38,6 +38,7 @@ import * as PeachReceiveNotification from './modules/peach-notification'
 import * as PeachSuccess from './modules/peach-success'
 import * as PeachError from './modules/peach-error'
 import * as PeachCancel from './modules/peach-cancel'
+import * as MakeInvestorInvoiceSettlement from './modules/make_investor_invoice_settlement'
 
 admin.initializeApp();
 
@@ -46,6 +47,7 @@ export const peachError = PeachError.peachError
 export const peachSuccess = PeachSuccess.peachSuccess
 export const peachNotify = PeachReceiveNotification.peachNotify
 
+export const makeInvestorInvoiceSettlement = MakeInvestorInvoiceSettlement.makeInvestorInvoiceSettlement
 export const requestCheckOutId = PeachRequestCheckoutId.requestCheckOutId
 export const getDeliveryNotesWithPaging = DeliveryNotesWithPaging.getDeliveryNotesWithPaging
 export const customerDashboard = CustomerDashboard.customerDashboard
