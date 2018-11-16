@@ -152,7 +152,7 @@ export const makeInvoiceBid = functions.https.onRequest(
           );
         }
         await checkTotalBids(docID, offerId);
-        await sendMessageToTopic(mdata, offerId);
+        await sendMessageToTopic(mdata);
 
         console.log("Everything seems OK. InvoiceBid done!");
         response.status(200).send(mdata);
@@ -161,8 +161,9 @@ export const makeInvoiceBid = functions.https.onRequest(
         handleError(e);
       }
     }
-    async function sendMessageToTopic(mdata, offerId) {
-      const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
+    async function sendMessageToTopic(mdata) {
+      const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.supplier.split('#')[1];
+      const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.investor.split('#')[1];
       const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
       const payload = {
         data: {
@@ -178,20 +179,12 @@ export const makeInvoiceBid = functions.https.onRequest(
             mdata.amount
         }
       };
-      if (mdata.supplierFCMToken) {
-        console.log(
-          "sending invoice bid data to supplier device: " +
-            mdata.supplierFCMToken +
-            " " +
-            JSON.stringify(mdata)
-        );
-        const devices = [mdata.supplierFCMToken];
-        await admin.messaging().sendToDevice(devices, payload);
-      }
+      
       console.log(
-        "sending invoice bid data to topics: " + topic + " " + topic2
+        "sending invoice bid data to topics: " + topic + " " + topic1 + " " + topic2
       );
       await admin.messaging().sendToTopic(topic, payload);
+      await admin.messaging().sendToTopic(topic1, payload);
       return await admin.messaging().sendToTopic(topic2, payload);
     }
     async function checkTotalBids(offerDocID, offerId) {

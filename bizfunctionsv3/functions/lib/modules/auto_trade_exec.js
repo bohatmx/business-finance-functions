@@ -1,6 +1,6 @@
 "use strict";
 // ###########################################################################
-// Execute Auto Trading Session - investors matched with offers and bids 
+// Execute Auto Trading Session - investors matched with offers and bids
 // ###########################################################################
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
@@ -60,7 +60,7 @@ exports.executeAutoTrades = functions
             units.map(unit => {
                 summary.possibleAmount += unit.offer.offerAmount;
             });
-            await sendMessageToHeartbeatTopic('Preparing to start writing bids to BFN');
+            await sendMessageToHeartbeatTopic("Preparing to start writing bids to BFN");
             await writeBids();
         }
         console.log(summary);
@@ -173,36 +173,32 @@ exports.executeAutoTrades = functions
         console.log(`Auto Trading Session: processed ${bidCount} bids of a possible ${units.length}, date: ${new Date().toISOString()}`);
         summary.totalAmount += bid.amount;
         summary.totalValidBids++;
-        await sendMessageToTopic(bid, offerId);
+        await sendMessageToTopic(bid);
         return await closeOfferOnBFN(offerId);
     }
-    async function sendMessageToTopic(mdata, offerId) {
-        const mTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
-        const pTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
+    async function sendMessageToTopic(mdata) {
+        const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.supplier.split('#')[1];
+        const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.investor.split('#')[1];
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
         const payload = {
-            data: {
-                messageType: "INVOICE_BID",
-                json: JSON.stringify(mdata)
-            },
-            notification: {
-                title: "Invoice Bid",
-                body: "Invoice Bid from " +
-                    mdata.investorName +
-                    " amount: " +
-                    mdata.amount
+            message: {
+                notification: {
+                    title: "Invoice Bid",
+                    body: "Invoice Bid from " +
+                        mdata.investorName +
+                        " amount: " +
+                        mdata.amount
+                },
+                data: {
+                    messageType: "INVOICE_BID",
+                    json: JSON.stringify(mdata)
+                }
             }
         };
-        if (mdata.supplierFCMToken) {
-            console.log("sending invoice bid data to supplier device: " +
-                mdata.supplierFCMToken +
-                " " +
-                JSON.stringify(mdata));
-            const devices = [mdata.supplierFCMToken];
-            await admin.messaging().sendToDevice(devices, payload);
-        }
-        console.log("## sending invoice bid data to topics: " + mTopic + ' - ' + pTopic);
-        await admin.messaging().sendToTopic(pTopic, payload);
-        return await admin.messaging().sendToTopic(mTopic, payload);
+        console.log("sending invoice bid data to topics: " + topic + " " + topic1 + " " + topic2);
+        await admin.messaging().sendToTopic(topic, payload.message);
+        await admin.messaging().sendToTopic(topic1, payload.message);
+        return await admin.messaging().sendToTopic(topic2, payload.message);
     }
     async function closeOfferOnBFN(offerId) {
         let url;
@@ -268,13 +264,13 @@ exports.executeAutoTrades = functions
     }
     async function getData() {
         console.log("################### getData ######################");
-        await sendMessageToHeartbeatTopic('Collecting auto trade base data');
+        await sendMessageToHeartbeatTopic("Collecting auto trade base data");
         let qso;
         qso = await admin
             .firestore()
             .collection("invoiceOffers")
             .where("isOpen", "==", true)
-            .orderBy('date')
+            .orderBy("date")
             .get()
             .catch(e => {
             console.log(e);
@@ -369,7 +365,7 @@ exports.executeAutoTrades = functions
         try {
             units = await Matcher.Matcher.match(profiles, orders, offers);
             if (units.length > 50) {
-                handleError('We gotta a big problem! units: ' + units.length);
+                handleError("We gotta a big problem! units: " + units.length);
             }
         }
         catch (e) {

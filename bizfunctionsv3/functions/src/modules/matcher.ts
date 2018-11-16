@@ -12,7 +12,7 @@ export class Matcher {
     let pOffers: Data.Offer[] = offers;
     let loopCount = 0;
     const MAX_LOOPS: number = 3;
-    const MAX_UNITS: number = 50;
+    const MAX_UNITS: number = 30;
     const invalidSummary: Data.InvalidSummary = new Data.InvalidSummary();
     invalidSummary.date = new Date().toISOString();
     let start: number;

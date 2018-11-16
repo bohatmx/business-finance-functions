@@ -164,10 +164,12 @@ export const makeOffer = functions.https.onRequest(
             "Offer from " + mdata.supplierName + " amount: " + mdata.offerAmount
         }
       };
-
+      
       const topic = BFNConstants.Constants.TOPIC_OFFERS;
-      console.log("sending Offer data to topic: " + topic);
-      return await admin.messaging().sendToTopic(topic, payload);
+      const topic2 = BFNConstants.Constants.TOPIC_OFFERS + mdata.supplier.split('#')[1];
+      console.log("sending Offer data to topics: " + topic + " " + topic2);
+      await admin.messaging().sendToTopic(topic, payload);
+      return await admin.messaging().sendToTopic(topic2, payload);
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);

@@ -1,5 +1,5 @@
 // ###########################################################################
-// Execute Auto Trading Session - investors matched with offers and bids 
+// Execute Auto Trading Session - investors matched with offers and bids
 // ###########################################################################
 
 import * as functions from "firebase-functions";
@@ -14,8 +14,6 @@ const uuid = require("uuid/v1");
 export const executeAutoTrades = functions
   .runWith({ memory: "512MB", timeoutSeconds: 540 })
   .https.onRequest(async (request, response) => {
-
-    
     try {
       const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
@@ -26,7 +24,7 @@ export const executeAutoTrades = functions
     } catch (e) {
       console.log(e);
     }
-    
+
     if (!request.body) {
       console.log("ERROR - request has no body");
       return response.status(500).send("Request has no body");
@@ -54,7 +52,9 @@ export const executeAutoTrades = functions
     const startTime = new Date().getTime();
     let bidCount = 0;
 
-    await sendMessageToHeartbeatTopic(`AutoTrade Session started: ${new Date().toISOString()}`)
+    await sendMessageToHeartbeatTopic(
+      `AutoTrade Session started: ${new Date().toISOString()}`
+    );
     await startAutoTradeSession();
     return null;
 
@@ -66,9 +66,11 @@ export const executeAutoTrades = functions
       if (result > 0) {
         await buildUnits();
         units.map(unit => {
-        summary.possibleAmount += unit.offer.offerAmount;
-      });
-        await sendMessageToHeartbeatTopic('Preparing to start writing bids to BFN')
+          summary.possibleAmount += unit.offer.offerAmount;
+        });
+        await sendMessageToHeartbeatTopic(
+          "Preparing to start writing bids to BFN"
+        );
         await writeBids();
       }
       console.log(summary);
@@ -82,7 +84,9 @@ export const executeAutoTrades = functions
 
       console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
-      await sendMessageToHeartbeatTopic(`AutoTrade Session complete, elapsed: ${summary.elapsedSeconds} seconds`)
+      await sendMessageToHeartbeatTopic(
+        `AutoTrade Session complete, elapsed: ${summary.elapsedSeconds} seconds`
+      );
       return response.status(200).send(summary);
     }
     async function writeBids() {
@@ -204,39 +208,38 @@ export const executeAutoTrades = functions
       );
       summary.totalAmount += bid.amount;
       summary.totalValidBids++;
-      await sendMessageToTopic(bid, offerId);
+      await sendMessageToTopic(bid);
       return await closeOfferOnBFN(offerId);
     }
-    async function sendMessageToTopic(mdata, offerId) {
-      const mTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
-      const pTopic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + offerId;
+    async function sendMessageToTopic(mdata) {
+      const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.supplier.split('#')[1];
+      const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.investor.split('#')[1];
+      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
       const payload = {
-        data: {
-          messageType: "INVOICE_BID",
-          json: JSON.stringify(mdata)
-        },
-        notification: {
-          title: "Invoice Bid",
-          body:
-            "Invoice Bid from " +
-            mdata.investorName +
-            " amount: " +
-            mdata.amount
+        message: {
+          notification: {
+            title: "Invoice Bid",
+            body:
+              "Invoice Bid from " +
+              mdata.investorName +
+              " amount: " +
+              mdata.amount
+          },
+          data: {
+            messageType: "INVOICE_BID",
+            json: JSON.stringify(mdata)
+          }
         }
       };
-      if (mdata.supplierFCMToken) {
-        console.log(
-          "sending invoice bid data to supplier device: " +
-            mdata.supplierFCMToken +
-            " " +
-            JSON.stringify(mdata)
-        );
-        const devices = [mdata.supplierFCMToken];
-        await admin.messaging().sendToDevice(devices, payload);
-      }
-      console.log("## sending invoice bid data to topics: " + mTopic + ' - ' + pTopic);
-      await admin.messaging().sendToTopic(pTopic, payload);
-      return await admin.messaging().sendToTopic(mTopic, payload);
+
+      
+       console.log(
+        "sending invoice bid data to topics: " + topic + " " + topic1 + " " + topic2
+      );
+
+      await admin.messaging().sendToTopic(topic, payload.message);
+      await admin.messaging().sendToTopic(topic1, payload.message);
+      return await admin.messaging().sendToTopic(topic2, payload.message);
     }
     async function closeOfferOnBFN(offerId) {
       let url;
@@ -262,7 +265,7 @@ export const executeAutoTrades = functions
         console.log(`*** BFN ERROR ###status: ${blockchainResponse.status}`);
         handleError(blockchainResponse);
       }
-    } 
+    }
     async function closeOfferOnFirestore(offerId) {
       let mdocID;
       let mData;
@@ -308,13 +311,13 @@ export const executeAutoTrades = functions
     }
     async function getData() {
       console.log("################### getData ######################");
-      await sendMessageToHeartbeatTopic('Collecting auto trade base data')
+      await sendMessageToHeartbeatTopic("Collecting auto trade base data");
       let qso;
       qso = await admin
         .firestore()
         .collection("invoiceOffers")
         .where("isOpen", "==", true)
-        .orderBy('date')
+        .orderBy("date")
         .get()
         .catch(e => {
           console.log(e);
@@ -340,7 +343,6 @@ export const executeAutoTrades = functions
         offer.supplier = data["supplier"];
         offer.supplierName = data["supplierName"];
         offers.push(offer);
-        
       });
 
       if (qso.docs.length === 0) {
@@ -349,7 +351,7 @@ export const executeAutoTrades = functions
       } else {
         console.log("### Open offers found: " + qso.docs.length);
       }
-      
+
       shuffleOffers();
       ///////
       let qs;
@@ -415,7 +417,9 @@ export const executeAutoTrades = functions
           } maxInvoiceAmount: ${profile.maxInvoiceAmount} `
         );
       });
-      await sendMessageToHeartbeatTopic(`Completed data collection, about to build valid execution units`)
+      await sendMessageToHeartbeatTopic(
+        `Completed data collection, about to build valid execution units`
+      );
       return offers.length;
     }
     async function buildUnits() {
@@ -423,13 +427,15 @@ export const executeAutoTrades = functions
       try {
         units = await Matcher.Matcher.match(profiles, orders, offers);
         if (units.length > 50) {
-          handleError('We gotta a big problem! units: ' + units.length)
+          handleError("We gotta a big problem! units: " + units.length);
         }
       } catch (e) {
         console.log(e);
         handleError("Matching fell down.");
       }
-      await sendMessageToHeartbeatTopic(`Matcher has created ${units.length} execution unit`)
+      await sendMessageToHeartbeatTopic(
+        `Matcher has created ${units.length} execution unit`
+      );
       console.log(
         `++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${
           units.length
@@ -443,7 +449,9 @@ export const executeAutoTrades = functions
         const j = Math.floor(Math.random() * (i + 1));
         [orders[i], orders[j]] = [orders[j], orders[i]];
       }
-      console.log("########## shuffled orders ........check above vs below.. wtf?");
+      console.log(
+        "########## shuffled orders ........check above vs below.. wtf?"
+      );
       console.log(orders);
     }
     function shuffleOffers() {

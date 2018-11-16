@@ -9,7 +9,7 @@ class Matcher {
         let pOffers = offers;
         let loopCount = 0;
         const MAX_LOOPS = 3;
-        const MAX_UNITS = 50;
+        const MAX_UNITS = 30;
         const invalidSummary = new Data.InvalidSummary();
         invalidSummary.date = new Date().toISOString();
         let start;
