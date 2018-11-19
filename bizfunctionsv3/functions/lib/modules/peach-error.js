@@ -17,8 +17,18 @@ exports.peachError = functions.https.onRequest(async (request, response) => {
     catch (e) {
         //console.log(e);
     }
+    await writeToFirestore(request.body);
     await sendToTopic(request.body);
     return response.status(200).send('OK');
+    async function writeToFirestore(data) {
+        try {
+            const mRef = await admin.firestore().collection('peachErrors').add(data);
+            console.log(`Peach error written, path - ${mRef.path}`);
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
     async function sendToTopic(data) {
         let mdata = data;
         if (!data) {
@@ -28,10 +38,6 @@ exports.peachError = functions.https.onRequest(async (request, response) => {
             };
         }
         const payload = {
-            notification: {
-                title: "Peach Payments",
-                body: "Peach Payments Error Message"
-            },
             data: {
                 json: JSON.stringify(mdata),
                 messageType: "PEACH_ERROR"

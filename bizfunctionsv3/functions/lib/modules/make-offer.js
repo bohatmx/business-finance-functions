@@ -86,6 +86,9 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 handleError(error);
             });
             console.log(`** Data written to Firestore! ${ref1.path}`);
+            //update documentReference 
+            mdata.documentReference = ref1.path.split('/')[1];
+            await ref1.set(mdata);
             await sendMessageToTopic(mdata);
             await updateInvoice(mdata);
             response.status(200).send(mdata);

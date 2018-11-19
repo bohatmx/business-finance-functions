@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
-import * as AxiosComms from "./axios-comms";
 
 export const peachCancel= functions.https.onRequest(
   async (request, response) => {
@@ -20,9 +19,18 @@ export const peachCancel= functions.https.onRequest(
     } catch (e) {
       //console.log(e);
     }
+    await writeToFirestore(request.body)
     await sendToTopic(request.body)
-    return response.status(200).send(request.body);
+    return response.status(200).send('OK');
 
+    async function writeToFirestore(data) {
+      try {
+        const mRef = await admin.firestore().collection('peachCancellations').add(data);
+        console.log(`Peach cancellation written, path - ${mRef.path}`)
+      } catch (e) {
+        console.log(e)
+      }
+    }
     async function sendToTopic(data) {
       let mdata = data;
       if (!data) {
@@ -33,10 +41,7 @@ export const peachCancel= functions.https.onRequest(
       }
 
       const payload = {
-        notification: {
-          title: "Peach Payments",
-          body: "Peach Payments Cancelled Message"
-        },
+        
         data: {
           json: JSON.stringify(mdata),
           messageType: "PEACH_CANCEL"

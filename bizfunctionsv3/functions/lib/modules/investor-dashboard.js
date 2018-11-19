@@ -9,15 +9,15 @@ const admin = require("firebase-admin");
 exports.investorDashboard = functions.https.onRequest(async (request, response) => {
     if (!request.body) {
         console.log("ERROR - request has no body");
-        return response.status(400).send('request has no body');
+        return response.status(400).send("request has no body");
     }
     if (!request.body.id) {
         console.log("ERROR - request has no id");
-        return response.status(400).send('request has no id');
+        return response.status(400).send("request has no id");
     }
     if (!request.body.documentId) {
         console.log("ERROR - request has no documentId");
-        return response.status(400).send('request has no documentId');
+        return response.status(400).send("request has no documentId");
     }
     try {
         const firestore = admin.firestore();
@@ -34,19 +34,19 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
     const documentId = request.body.documentId;
     const result = {
         totalOpenOffers: 0,
-        totalOpenOfferAmount: 0.00,
+        totalOpenOfferAmount: 0.0,
         totalUnsettledBids: 0,
-        totalUnsettledAmount: 0.00,
+        totalUnsettledAmount: 0.0,
         totalSettledBids: 0,
-        totalSettledAmount: 0.00,
+        totalSettledAmount: 0.0,
         totalBids: 0,
-        totalBidAmount: 0.00,
+        totalBidAmount: 0.0,
         date: new Date().toISOString(),
         investorId: investorId,
-        averageBidAmount: 0.00,
+        averageBidAmount: 0.0,
         averageDiscountPerc: 0.0,
-        totalOfferAmount: 0.00,
-        totalOffers: 0,
+        totalOfferAmount: 0.0,
+        totalOffers: 0
     };
     await getOpenOffers();
     await getBids();
@@ -66,10 +66,14 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
                 handleError(error);
             });
             let totPerc = 0.0;
+            let countDiscounts = 0;
             queryRef.docs.forEach(doc => {
                 result.totalBidAmount += doc.data().amount;
                 result.totalBids++;
-                totPerc += doc.data().discountPercent;
+                if (doc.data().discountPercent) {
+                    totPerc += doc.data().discountPercent;
+                    countDiscounts++;
+                }
                 if (doc.data().isSettled === false) {
                     result.totalUnsettledAmount += doc.data().amount;
                     result.totalUnsettledBids++;
@@ -79,8 +83,13 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
                     result.totalSettledBids++;
                 }
             });
-            result.averageBidAmount = result.totalBidAmount / result.totalBids;
-            result.averageDiscountPerc = totPerc / result.totalBids;
+            if (result.totalBids > 0) {
+                result.averageBidAmount = result.totalBidAmount / result.totalBids;
+            }
+            if (countDiscounts > 0) {
+                result.averageDiscountPerc = totPerc / countDiscounts;
+            }
+            console.log(`######### totalPerc: ${totPerc} countDiscounts: ${countDiscounts} result.averageDiscountPerc: ${result.averageDiscountPerc}`);
             return null;
         }
         catch (e) {
@@ -89,23 +98,27 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
         }
     }
     async function getOpenOffers() {
+        let queryRef;
         try {
-            let queryRef;
             queryRef = await admin
                 .firestore()
                 .collection("invoiceOffers")
-                .where("isOpen", "==", true)
+                // .where("isOpen", "==", true)
                 .get()
                 .catch(function (error) {
                 console.log(error);
                 handleError(error);
             });
             let tot = 0.0;
+            let count = 0;
             queryRef.docs.forEach(doc => {
-                tot += doc.data().offerAmount;
+                if (doc.data().isOpen === true) {
+                    tot += doc.data().offerAmount;
+                    count++;
+                }
             });
             result.totalOpenOfferAmount = tot;
-            result.totalOpenOffers = queryRef.docs.length;
+            result.totalOpenOffers = count;
             return null;
         }
         catch (e) {
@@ -126,7 +139,7 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
         }
         catch (e) {
             console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send('Dashboard Query Failed');
+            response.status(400).send("Dashboard Query Failed");
         }
     }
 });

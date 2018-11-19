@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
-import * as AxiosComms from "./axios-comms";
 
 export const peachNotify = functions.https.onRequest(
   async (request, response) => {
@@ -25,29 +24,22 @@ export const peachNotify = functions.https.onRequest(
       //console.log(e);
     }
 
+    await writeToFirestore(request.body)
     await sendToTopic(request.body);
     return response.status(200).send("OK");
 
-    /*
-{ callpay_transaction_id: '1701753',
-  success: '1',
-  amount: '129409.00',
-  created: '2018-11-13 20:03:54',
-  reason: 'n/a',
-  user: 'malengadev',
-  merchant_reference: 'OneConnect',
-  gateway_reference: '1701753',
-  organisation_id: '1712',
-  gateway_response: '{\n    "merchant": {\n        "reference": "OneConnect"\n    },\n    "customer": {\n        "account": "4242424242424242424242",\n        "account_type": "current",\n        "bank": "absa",\n        "branch_code": "632005"\n    }\n}',
-  currency: 'ZAR',
-  payment_key: 'c9a1dad3baca8bbf35571c42413624e7' }
-*/
+
+    async function writeToFirestore(data) {
+      try {
+        const mRef = await admin.firestore().collection('peachTransactions').add(data);
+        console.log(`Peach transaction written, path - ${mRef.path}`)
+      } catch (e) {
+        console.log(e)
+      }
+    }
     async function sendToTopic(data) {
       const payload = {
-        notification: {
-          title: "Peach Payments",
-          body: "Peach Payments Notification"
-        },
+
         data: {
           json: JSON.stringify(data),
           messageType: "PEACH_NOTIFY"

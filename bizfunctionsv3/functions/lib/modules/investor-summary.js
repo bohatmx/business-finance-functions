@@ -17,102 +17,65 @@ exports.getInvestorsSummary = functions.https.onRequest(async (request, response
     catch (e) {
         console.log(e);
     }
-    const investorId = request.body.investorId;
-    if (!investorId) {
-        response.status(400).send("Missing investorId");
+    const documentId = request.body.documentId;
+    if (!documentId) {
+        response.status(400).send("Missing documentId");
         return null;
     }
-    console.log(`incoming investor: ${investorId}`);
+    console.log(`incoming investor documentId: ${documentId}`);
     const resultItem = {
-        investorName: null,
         totalUnsettledBids: 0,
         totalUnsettledBidAmount: 0.0,
-        maxInvestableAmount: 0.0,
-        investorId: null
+        totalSettledBids: 0,
+        totalSettledBidAmount: 0.0,
+        date: new Date().toISOString()
     };
     const invoiceBids = [];
-    let profile;
-    const Ok = await getUnsettledBids();
+    const Ok = await getBids();
     if (Ok) {
-        await getProfile();
         await calculate();
         console.log(resultItem);
         return response.status(200).send(resultItem);
     }
     return null;
-    async function getProfile() {
-        let qs;
-        qs = await admin
-            .firestore()
-            .collection("investorProfiles")
-            .where("investor", "==", `resource:com.oneconnect.biz.Investor#${investorId}`)
-            .get();
-        for (const q of qs.docs) {
-            const p = new Data.InvestorProfile();
-            const data = q.data();
-            p.name = data.name;
-            p.investor = data.investor;
-            p.maxInvestableAmount = data.maxInvestableAmount;
-            p.maxInvoiceAmount = data.maxInvoiceAmount;
-            profile = p;
-        }
-        console.log(profile);
-        return null;
-    }
     async function calculate() {
-        let tot = 0.0;
-        let count = 0;
         for (const bid of invoiceBids) {
-            tot += bid.amount;
-            count++;
+            if (bid.isSettled === true) {
+                resultItem.totalSettledBids++;
+                resultItem.totalSettledBidAmount += bid.amount;
+            }
+            else {
+                resultItem.totalUnsettledBids++;
+                resultItem.totalUnsettledBidAmount += bid.amount;
+            }
         }
-        resultItem.investorId = investorId;
-        resultItem.investorName = profile.name;
-        resultItem.maxInvestableAmount = profile.maxInvestableAmount;
-        resultItem.totalUnsettledBidAmount = tot;
-        resultItem.totalUnsettledBids = count;
         console.log(resultItem);
         return null;
     }
-    async function getUnsettledBids() {
+    async function getBids() {
         try {
-            let queryRef;
-            queryRef = await admin
+            let querySnapshot;
+            querySnapshot = await admin
                 .firestore()
                 .collection("investors")
-                .where("participantId", "==", investorId)
-                .get()
-                .catch(function (error) {
-                console.log(error);
-                handleError(error);
-                return false;
-            });
-            console.log(`found ${queryRef.docs.length} investor .... looking for bids ...`);
-            if (queryRef.docs.length == 0) {
-                response.status(400).send("Investor not found. Quit!");
-                return false;
-            }
-            for (const doc of queryRef.docs) {
-                const qs = await doc.ref
-                    .collection("invoiceBids")
-                    .where("isSettled", "==", false)
-                    .get();
-                console.log(`found ${qs.docs.length} investor bids ...`);
-                for (const q of qs.docs) {
-                    const bid = new Data.InvoiceBid();
-                    const data = q.data();
-                    bid.offer = data.offer;
-                    bid.amount = data.amount;
-                    bid.autoTradeOrder = data.autoTradeOrder;
-                    bid.date = data.date;
-                    bid.investor = data.investor;
-                    bid.investorName = data.investorName;
-                    bid.invoiceBidId = data.invoiceBidId;
-                    bid.isSettled = data.isSettled;
-                    bid.startTime = data.startTime;
-                    bid.endTime = data.endTime;
-                    invoiceBids.push(bid);
-                }
+                .doc(documentId)
+                .collection("invoiceBids")
+                .get();
+            console.log(`found ${querySnapshot.docs.length} investor bids ...`);
+            for (const q of querySnapshot.docs) {
+                const bid = new Data.InvoiceBid();
+                const data = q.data();
+                bid.offer = data.offer;
+                bid.amount = data.amount;
+                bid.autoTradeOrder = data.autoTradeOrder;
+                bid.date = data.date;
+                bid.investor = data.investor;
+                bid.investorName = data.investorName;
+                bid.invoiceBidId = data.invoiceBidId;
+                bid.isSettled = data.isSettled;
+                bid.startTime = data.startTime;
+                bid.endTime = data.endTime;
+                invoiceBids.push(bid);
             }
         }
         catch (e) {

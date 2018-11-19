@@ -70,6 +70,7 @@ exports.makeInvestorInvoiceSettlement = functions.https.onRequest(async (request
             mdata.intDate = new Date().getTime();
             mdata.date = new Date().toISOString();
             const key = mdata.offer.split("#")[1];
+            await admin.firestore().collection('settlements').add(mdata);
             const snapshot = await admin
                 .firestore()
                 .collection("invoiceOffers")

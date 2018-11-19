@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
-import * as AxiosComms from "./axios-comms";
 
 export const peachError = functions.https.onRequest(
   async (request, response) => {
@@ -20,9 +19,18 @@ export const peachError = functions.https.onRequest(
     } catch (e) {
       //console.log(e);
     }
+    await writeToFirestore(request.body)
     await sendToTopic(request.body)
     return response.status(200).send('OK');
 
+    async function writeToFirestore(data) {
+      try {
+        const mRef = await admin.firestore().collection('peachErrors').add(data);
+        console.log(`Peach error written, path - ${mRef.path}`)
+      } catch (e) {
+        console.log(e)
+      }
+    }
     async function sendToTopic(data) {
       let mdata = data;
       if (!data) {
@@ -33,10 +41,7 @@ export const peachError = functions.https.onRequest(
       }
 
       const payload = {
-        notification: {
-          title: "Peach Payments",
-          body: "Peach Payments Error Message"
-        },
+       
         data: {
           json: JSON.stringify(mdata),
           messageType: "PEACH_ERROR"

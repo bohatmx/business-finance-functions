@@ -127,6 +127,10 @@ export const executeAutoTrades = functions
       }
       const myReserve = 100.0 - reserveTotal;
       const myAmount = unit.offer.offerAmount * (myReserve / 100);
+      const ONE_HOUR = 1000 * 60 * 60
+      const ONE_DAY = ONE_HOUR * 24
+      const ONE_WEEK_FROM_NOW = new Date().getTime() +  (ONE_DAY * 7)
+      const mdate = new Date(ONE_WEEK_FROM_NOW)
       const bid = {
         invoiceBidId: uuid(),
         amount: myAmount,
@@ -139,10 +143,12 @@ export const executeAutoTrades = functions
         investorName: unit.order.investorName,
         wallet: unit.order.wallet,
         date: new Date().toISOString(),
+        intDate: null,
         isSettled: false,
         supplier: unit.offer.supplier,
+        discountPercent: unit.offer.discountPercent,
         startTime: new Date().toISOString(),
-        endTime: new Date().toISOString()
+        endTime: mdate.toISOString()
       };
       console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
       let url;
@@ -160,6 +166,7 @@ export const executeAutoTrades = functions
         handleError(e);
       });
       if (blockchainResponse.status === 200) {
+        bid.intDate = new Date().getTime()
         return await writeBidToFirestore(docId, bid, unit.offer.offerId);
       } else {
         console.log(
