@@ -120,7 +120,9 @@ export const investorDashboard = functions.https.onRequest(
         queryRef = await admin
           .firestore()
           .collection("invoiceOffers")
-          // .where("isOpen", "==", true)
+          .where("isOpen", "==", true)
+          .orderBy('date')
+          .limit(300)
           .get()
           .catch(function(error) {
             console.log(error);
@@ -128,14 +130,17 @@ export const investorDashboard = functions.https.onRequest(
           });
         let tot = 0.0;
         let count = 0;
+        console.log(`offers found ${queryRef.docs.length} after isOpen search`)
         queryRef.docs.forEach(doc => {
           if (doc.data().isOpen === true) {
             tot += doc.data().offerAmount;
             count++
           }
+          result.totalOfferAmount += doc.data().offerAmount
         });
         result.totalOpenOfferAmount = tot;
         result.totalOpenOffers = count;
+        result.totalOffers = queryRef.docs.length
 
         return null;
       } catch (e) {
