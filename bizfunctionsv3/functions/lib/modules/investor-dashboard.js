@@ -32,6 +32,10 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
     console.log(`##### Incoming documentId ${JSON.stringify(request.body.documentId)}`);
     const investorId = request.body.id;
     const documentId = request.body.documentId;
+    let limit = request.body.limit;
+    if (!limit) {
+        limit = 100;
+    }
     const result = {
         totalOpenOffers: 0,
         totalOpenOfferAmount: 0.0,
@@ -104,8 +108,9 @@ exports.investorDashboard = functions.https.onRequest(async (request, response) 
                 .firestore()
                 .collection("invoiceOffers")
                 .where("isOpen", "==", true)
-                .orderBy('date')
-                .limit(300)
+                .where('endTime', '>', new Date().toISOString())
+                .orderBy('endTime')
+                .limit(limit)
                 .get()
                 .catch(function (error) {
                 console.log(error);

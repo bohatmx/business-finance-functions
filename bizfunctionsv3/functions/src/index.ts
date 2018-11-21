@@ -39,8 +39,13 @@ import * as PeachSuccess from './modules/peach-success'
 import * as PeachError from './modules/peach-error'
 import * as PeachCancel from './modules/peach-cancel'
 import * as MakeInvestorInvoiceSettlement from './modules/make_investor_invoice_settlement'
+import * as DataExport from './modules/export-trigger'
+import * as OffersQuery from './modules/offers-query'
 
 admin.initializeApp();
+
+export const queryOffers = OffersQuery.queryOffers
+export const exportData = DataExport.exportData
 
 export const peachCancel = PeachCancel.peachCancel
 export const peachError = PeachError.peachError
