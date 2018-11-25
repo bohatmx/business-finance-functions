@@ -5,8 +5,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const BFNConstants = require("../models/constants");
-const AxiosComms = require("./axios-comms");
+const close_helper_1 = require("./close-helper");
 // const Firestore = require("firestore");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"offerId":"60bb1a50-c407-11e8-8c87-91c28e73e521", "debug": "true"}'   https://bfnrestv3.eu-gb.mybluemix.net/api/CloseOffer
 exports.closeOffer = functions.https.onRequest(async (request, response) => {
@@ -23,90 +22,32 @@ exports.closeOffer = functions.https.onRequest(async (request, response) => {
     catch (e) {
         console.log(e);
     }
-    console.log(`##### Incoming debug ${request.body.debug}`);
-    console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
+    try {
+        console.log(`##### Incoming debug ${request.body.debug}`);
+        console.log(`##### Incoming offerId ${request.body.offerId}`);
+        console.log(`##### Incoming offerDocRef ${request.body.offerDocRef}`);
+        console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
+    }
+    catch (e) { }
     const debug = request.body.debug;
     const offerId = request.body.offerId;
-    const map = new Map();
-    map["offerId"] = offerId;
-    const apiSuffix = "CloseOffer";
-    const ref = await writeToBFN();
-    if (ref) {
-        response.status(200).send(ref.path);
+    const offerDocRef = request.body.offerDocRef;
+    if (!offerId) {
+        response.status(400).send(`Missing offerId`);
+        return null;
     }
-    else {
-        response.sendStatus(400);
+    if (!offerDocRef) {
+        response.status(400).send(`Missing offerDocRef`);
+        return null;
+    }
+    try {
+        await close_helper_1.CloseHelper.writeCloseOfferToBFN(offerId, offerDocRef, debug);
+        response.status(200).send("Offer closed OK");
+    }
+    catch (e) {
+        console.log(e);
+        response.status(400).send(`Problem closing offer: ${e}`);
     }
     return null;
-    //add customer to bfn blockchain
-    async function writeToBFN() {
-        let url;
-        if (debug) {
-            url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-        }
-        else {
-            url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-        }
-        try {
-            const mresponse = await AxiosComms.AxiosComms.execute(url, map);
-            if (mresponse.status === 200) {
-                return writeToFirestore();
-            }
-            else {
-                console.log(`******** BFN ERROR ########### mresponse.status: ${mresponse.status}`);
-                return null;
-            }
-        }
-        catch (error) {
-            console.log("--------------- axios: BFN blockchain encountered a problem -----------------");
-            console.log(error);
-            return null;
-        }
-    }
-    async function writeToFirestore() {
-        console.log(`################### writeToFirestore, close Offer :${offerId}`);
-        try {
-            let mdocID;
-            let mData;
-            const snapshot = await admin
-                .firestore()
-                .collection("invoiceOffers")
-                .where("offerId", "==", offerId)
-                .get()
-                .catch(function (error) {
-                console.log("Error getting Firestore document ");
-                console.log(error);
-                return null;
-            });
-            snapshot.forEach(doc => {
-                mdocID = doc.id;
-                mData = doc.data();
-                mData.isOpen = false;
-                mData.dateClosed = new Date().toISOString();
-            });
-            console.log(`********************* offer documentID: ${mdocID}`);
-            console.log(`********************* offer data: ${JSON.stringify(mData)}`);
-            let ref1;
-            if (mdocID) {
-                ref1 = await admin
-                    .firestore()
-                    .collection("invoiceOffers")
-                    .doc(mdocID)
-                    .set(mData)
-                    .catch(function (error) {
-                    console.log("----- Error updating Firestore Offer document ");
-                    console.log(error);
-                    return null;
-                });
-                console.log(`********** Data successfully updated on Firestore: \n ${JSON.stringify(mData)}`);
-            }
-            return ref1;
-        }
-        catch (e) {
-            console.log("##### ERROR, probably JSON data format related:");
-            console.log(e);
-            return null;
-        }
-    }
 });
 //# sourceMappingURL=close-offer.js.map

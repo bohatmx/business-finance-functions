@@ -12,7 +12,7 @@ export class Matcher {
     let pOffers: Data.Offer[] = offers;
     let loopCount = 0;
     const MAX_LOOPS: number = 3;
-    const MAX_UNITS: number = 30;
+    const MAX_UNITS: number = 50;
     const invalidSummary: Data.InvalidSummary = new Data.InvalidSummary();
     invalidSummary.date = new Date().toISOString();
     let start: number;
@@ -126,11 +126,7 @@ export class Matcher {
       mOffer: Data.Offer,
       mOrder: Data.AutoTradeOrder
     ) {
-      // console.log(
-      //   `find match for ${mOrder.investorName} --> ${mOffer.supplierName} ${
-      //     mOffer.offerAmount
-      //   } profiles: ${profiles.length}`
-      // );
+
       let profile;
       profiles.forEach(p => {
         if (

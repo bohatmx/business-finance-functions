@@ -44,6 +44,8 @@ export class InvestorProfile {
     @JsonProperty()
     investor: string;
     @JsonProperty()
+    investorDocRef: string;
+    @JsonProperty()
     sectors: string[];
     @JsonProperty()
     suppliers: string[]
@@ -86,6 +88,8 @@ export class Offer {
     supplierName: string;
     @JsonProperty()
     customerName: string;
+    @JsonProperty()
+    customer: string;
     @JsonProperty()
     dateClosed: string;
     @JsonProperty()

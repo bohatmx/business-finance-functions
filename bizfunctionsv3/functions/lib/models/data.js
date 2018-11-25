@@ -111,6 +111,10 @@ __decorate([
 ], InvestorProfile.prototype, "investor", void 0);
 __decorate([
     json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], InvestorProfile.prototype, "investorDocRef", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
     __metadata("design:type", Array)
 ], InvestorProfile.prototype, "sectors", void 0);
 __decorate([
@@ -195,6 +199,10 @@ __decorate([
     json2typescript_1.JsonProperty(),
     __metadata("design:type", String)
 ], Offer.prototype, "customerName", void 0);
+__decorate([
+    json2typescript_1.JsonProperty(),
+    __metadata("design:type", String)
+], Offer.prototype, "customer", void 0);
 __decorate([
     json2typescript_1.JsonProperty(),
     __metadata("design:type", String)

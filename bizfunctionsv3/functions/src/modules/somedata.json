@@ -1,0 +1,19 @@
+{
+  "invoiceSettlementId": "c3d965c0-e440-11e8-da4c-4d0d9cfe7ad2",
+  "date": "2018-11-25T20:07:41.858614Z",
+  "amount": 533760,
+  "peachPaymentKey": "93f67036f5e35218e0f5ec29ac9a798b",
+  "peachTransactionId": "1775904",
+  "invoiceBid": "resource:com.oneconnect.biz.InvoiceBid#2c19b770-e65d-11e8-bd89-b7c5da6f164a",
+  "investor": "resource:com.oneconnect.biz.Investor#a0a20af0-e440-11e8-dce3-0f73ee023ad9",
+  "user": "resource:com.oneconnect.biz.User#a0a39190-e440-11e8-cc7c-31d8f2b10969",
+  "wallet": "resource:com.oneconnect.biz.Wallet#GCAZEBEVXRDFVHCVTOSA4CSAYSHTC6KT3XT3OLQUKKJJXTUDF54DP6QZ",
+  "documentReference": null,
+  "supplierFCMToken": null,
+  "supplier": null,
+  "offer": "resource:com.oneconnect.biz.Offer#2dbe3fd0-e440-11e8-b65e-73443493665f",
+  "customer": null,
+  "customerName": null,
+  "supplierName": null,
+  "investorName": "SME Investors LLC"
+}

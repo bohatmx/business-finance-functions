@@ -26,6 +26,7 @@
     "validator": "^10.8.0",
     "json2csv": "^4.2.1",
     "node-firestore-import-export": "^0.10.3"
+
   },
   "devDependencies": {
     "tslint": "^5.11.0",

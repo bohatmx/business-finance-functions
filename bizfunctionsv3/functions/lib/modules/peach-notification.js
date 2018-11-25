@@ -44,22 +44,5 @@ exports.peachNotify = functions.https.onRequest(async (request, response) => {
         console.log(`sending PeachNotify to ${topic}`);
         return admin.messaging().sendToTopic(topic, payload);
     }
-    function handleError(message) {
-        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-        try {
-            const payload = {
-                name: "peachNotification",
-                message: message,
-                data: request.body.data,
-                date: new Date().toISOString()
-            };
-            console.log(payload);
-            response.status(400).send(payload);
-        }
-        catch (e) {
-            console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send(message);
-        }
-    }
 });
 //# sourceMappingURL=peach-notification.js.map

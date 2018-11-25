@@ -5,10 +5,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const BFNConstants = require("../models/constants");
-const BFNComms = require("./axios-comms");
 const Data = require("../models/data");
 const Matcher = require("./matcher");
+const invoice_bid_helper_1 = require("./invoice-bid-helper");
 const uuid = require("uuid/v1");
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
@@ -18,7 +17,7 @@ exports.executeAutoTrades = functions
         const firestore = admin.firestore();
         const settings = { /* your settings... */ timestampsInSnapshots: true };
         firestore.settings(settings);
-        console.log("Firebase settings completed. Should be free of annoying messages from Google");
+        console.log("Firebase settings completed. Should be free of annoying messages from Google :) :)");
     }
     catch (e) {
         console.log(e);
@@ -46,7 +45,6 @@ exports.executeAutoTrades = functions
     };
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
-    let bidCount = 0;
     await sendMessageToHeartbeatTopic(`AutoTrade Session started: ${new Date().toISOString()}`);
     await startAutoTradeSession();
     return null;
@@ -84,189 +82,58 @@ exports.executeAutoTrades = functions
         return 0;
     }
     async function writeBidToBFN(unit) {
-        //get existing invoice bids for this offer
-        const colRef = admin.firestore().collection("invoiceOffers");
-        let querySnap;
-        querySnap = await colRef.where("offerId", "==", unit.offer.offerId).get();
-        let docId;
-        querySnap.forEach(doc => {
-            docId = doc.id;
-        });
-        const apiSuffix = "MakeInvoiceBid";
-        const bidQuerySnap = await admin
-            .firestore()
-            .collection("invoiceOffers")
-            .doc(docId)
-            .collection("invoiceBids")
-            .get();
-        let reserveTotal = 0.0;
-        bidQuerySnap.forEach(doc => {
-            reserveTotal += doc.data()["reservePercent"];
-        });
-        if (reserveTotal > 0) {
-            console.log(`&&&&&&&&& total precent reserved: ${reserveTotal} % from ${bidQuerySnap.size} existing bids. Offer amt: ${unit.offer.offerAmount}`);
-        }
-        const myReserve = 100.0 - reserveTotal;
-        const myAmount = unit.offer.offerAmount * (myReserve / 100);
-        const ONE_HOUR = 1000 * 60 * 60;
-        const ONE_DAY = ONE_HOUR * 24;
-        const ONE_WEEK_FROM_NOW = new Date().getTime() + (ONE_DAY * 7);
-        const mdate = new Date(ONE_WEEK_FROM_NOW);
-        const bid = {
-            invoiceBidId: uuid(),
-            amount: myAmount,
-            reservePercent: myReserve,
-            autoTradeOrder: `resource:com.oneconnect.biz.AutoTradeOrder#${unit.order.autoTradeOrderId}`,
-            investor: unit.order.investor,
-            offer: `resource:com.oneconnect.biz.Offer#${unit.offer.offerId}`,
-            investorName: unit.order.investorName,
-            wallet: unit.order.wallet,
-            date: new Date().toISOString(),
-            intDate: null,
-            isSettled: false,
-            supplier: unit.offer.supplier,
-            discountPercent: unit.offer.discountPercent,
-            startTime: new Date().toISOString(),
-            endTime: mdate.toISOString()
-        };
-        console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
-        let url;
-        if (debug === "true") {
-            url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-        }
-        else {
-            url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-        }
-        const blockchainResponse = await BFNComms.AxiosComms.execute(url, bid).catch(e => {
-            console.log(e);
-            handleError(e);
-        });
-        if (blockchainResponse.status === 200) {
-            bid.intDate = new Date().getTime();
-            return await writeBidToFirestore(docId, bid, unit.offer.offerId);
-        }
-        else {
-            console.log(`******** BFN ERROR ########### mresponse.status: ${blockchainResponse.status}`);
-            handleError(blockchainResponse);
-        }
-    }
-    async function writeBidToFirestore(docId, bid, offerId) {
-        await admin
-            .firestore()
-            .collection("invoiceOffers")
-            .doc(docId)
-            .collection("invoiceBids")
-            .add(bid)
-            .catch(e => {
-            console.log(e);
-            handleError(e);
-        });
-        let invRequestSnapshot;
-        invRequestSnapshot = await admin
-            .firestore()
-            .collection("investors")
-            .where("participantId", "==", bid.investor.split("#")[1])
-            .get();
-        const investorRef = invRequestSnapshot.docs[0].ref;
-        let xref;
-        xref = await investorRef
-            .collection("invoiceBids")
-            .add(bid)
-            .catch(e => {
-            console.log(e);
-            handleError(e);
-        });
-        console.log(`++++++++ invoiceBid written to investor invoiceBids on Firestore: ${bid.investorName} for amount: ${bid.amount} ref: ${xref.path}`);
-        console.log(`Auto Trading Session: processed ${bidCount} bids of a possible ${units.length}, date: ${new Date().toISOString()}`);
-        summary.totalAmount += bid.amount;
-        summary.totalValidBids++;
-        await sendMessageToTopic(bid);
-        return await closeOfferOnBFN(offerId);
-    }
-    async function sendMessageToTopic(mdata) {
-        const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.supplier.split('#')[1];
-        const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS + mdata.investor.split('#')[1];
-        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
-        const payload = {
-            message: {
-                notification: {
-                    title: "Invoice Bid",
-                    body: "Invoice Bid from " +
-                        mdata.investorName +
-                        " amount: " +
-                        mdata.amount
-                },
-                data: {
-                    messageType: "INVOICE_BID",
-                    json: JSON.stringify(mdata)
-                }
-            }
-        };
-        console.log("sending invoice bid data to topics: " + topic + " " + topic1 + " " + topic2);
-        await admin.messaging().sendToTopic(topic, payload.message);
-        await admin.messaging().sendToTopic(topic1, payload.message);
-        return await admin.messaging().sendToTopic(topic2, payload.message);
-    }
-    async function closeOfferOnBFN(offerId) {
-        let url;
-        if (debug === "true") {
-            url = BFNConstants.Constants.DEBUG_URL + "CloseOffer";
-        }
-        else {
-            url = BFNConstants.Constants.RELEASE_URL + "CloseOffer";
-        }
-        const map = new Map();
-        map["offerId"] = offerId;
-        const blockchainResponse = await BFNComms.AxiosComms.execute(url, map).catch(e => {
-            handleError(e);
-        });
-        if (blockchainResponse.status === 200) {
-            return await closeOfferOnFirestore(offerId);
-        }
-        else {
-            console.log(`*** BFN ERROR ###status: ${blockchainResponse.status}`);
-            handleError(blockchainResponse);
-        }
-    }
-    async function closeOfferOnFirestore(offerId) {
-        let mdocID;
-        let mData;
-        let offerSnapshot;
-        offerSnapshot = await admin
-            .firestore()
-            .collection("invoiceOffers")
-            .where("offerId", "==", offerId)
-            .get()
-            .catch(error => {
-            console.log("Error getting Firestore document ");
-            console.log(error);
-            handleError(error);
-        });
-        offerSnapshot.forEach(doc => {
-            mdocID = doc.id;
-            mData = doc.data();
-            mData.isOpen = false;
-            mData.dateClosed = new Date().toISOString();
-        });
-        if (mdocID) {
-            let m;
-            m = await admin
+        try {
+            //get existing invoice bids for this offer
+            const bidQuerySnap = await admin
                 .firestore()
                 .collection("invoiceOffers")
-                .doc(mdocID)
-                .set(mData)
-                .catch(error => {
-                console.log("----- Error updating Firestore Offer document ");
-                console.log(error);
-                handleError(error);
+                .doc(unit.offer.offerDocRef)
+                .collection("invoiceBids")
+                .get();
+            let reserveTotal = 0.0;
+            bidQuerySnap.docs.forEach(doc => {
+                reserveTotal += doc.data()["reservePercent"];
             });
-            console.log(`################### closeOfferOnFirestore, closed offerId :${offerId}`);
-            summary.closedOffers++;
-            bidCount++;
-            return m;
+            if (reserveTotal > 0) {
+                console.log(`&&&&&&&&& total percent reserved: ${reserveTotal} % from ${bidQuerySnap.size} existing bids. Offer amt: ${unit.offer.offerAmount}`);
+            }
+            const myReserve = 100.0 - reserveTotal;
+            const myAmount = unit.offer.offerAmount * (myReserve / 100);
+            const ONE_HOUR = 1000 * 60 * 60;
+            const ONE_DAY = ONE_HOUR * 24;
+            const ONE_WEEK_FROM_NOW = new Date().getTime() + ONE_DAY * 14;
+            const mdate = new Date(ONE_WEEK_FROM_NOW);
+            if (!unit.offer.customer) {
+                throw new Error("Customer is null: .... wtf?");
+            }
+            const bid = {
+                invoiceBidId: uuid(),
+                amount: myAmount,
+                reservePercent: myReserve,
+                autoTradeOrder: `resource:com.oneconnect.biz.AutoTradeOrder#${unit.order.autoTradeOrderId}`,
+                investor: unit.order.investor,
+                offer: `resource:com.oneconnect.biz.Offer#${unit.offer.offerId}`,
+                investorName: unit.order.investorName,
+                wallet: unit.order.wallet,
+                date: new Date().toISOString(),
+                intDate: null,
+                isSettled: false,
+                supplier: unit.offer.supplier,
+                supplierName: unit.offer.supplierName,
+                customerName: unit.offer.customerName,
+                customer: unit.offer.customer,
+                discountPercent: unit.offer.discountPercent,
+                investorDocRef: unit.profile.investorDocRef,
+                offerDocRef: unit.offer.offerDocRef,
+                startTime: new Date().toISOString(),
+                endTime: mdate.toISOString()
+            };
+            console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
+            await invoice_bid_helper_1.InvoiceBidHelper.writeInvoiceBidToBFNandFirestore(bid, debug);
         }
-        else {
-            return 0;
+        catch (e) {
+            console.log(e);
+            throw e;
         }
     }
     async function getData() {
@@ -277,13 +144,14 @@ exports.executeAutoTrades = functions
             .firestore()
             .collection("invoiceOffers")
             .where("isOpen", "==", true)
-            .where('endTime', '>', new Date().toISOString())
+            .where("endTime", ">", new Date().toISOString())
             .orderBy("endTime")
             .get()
             .catch(e => {
             console.log(e);
             handleError(e);
         });
+        console.log(`###### open offers found: ${qso.docs.length}`);
         summary.totalOffers = qso.docs.length;
         offers = [];
         qso.docs.forEach(doc => {
@@ -302,6 +170,10 @@ exports.executeAutoTrades = functions
             offer.customerName = data["customerName"];
             offer.supplier = data["supplier"];
             offer.supplierName = data["supplierName"];
+            if (!data["customer"]) {
+                throw new Error(`##### ERROR - customer is NULL. you have to be kidding! ${doc.ref.path}`);
+            }
+            offer.customer = data["customer"];
             offers.push(offer);
         });
         if (qso.docs.length === 0) {
@@ -362,8 +234,10 @@ exports.executeAutoTrades = functions
             profile.minimumDiscount = data["minimumDiscount"];
             profile.sectors = data["sectors"];
             profile.suppliers = data["suppliers"];
+            profile.investorDocRef = data["investorDocRef"];
             profiles.push(profile);
             console.log(`###### profile for: ${profile.name} minimumDiscount: ${profile.minimumDiscount} maxInvestableAmount: ${profile.maxInvestableAmount} maxInvoiceAmount: ${profile.maxInvoiceAmount} `);
+            console.log(profile);
         });
         await sendMessageToHeartbeatTopic(`Completed data collection, about to build valid execution units`);
         return offers.length;

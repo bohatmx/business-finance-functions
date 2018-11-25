@@ -9,7 +9,7 @@ class Matcher {
         let pOffers = offers;
         let loopCount = 0;
         const MAX_LOOPS = 3;
-        const MAX_UNITS = 30;
+        const MAX_UNITS = 50;
         const invalidSummary = new Data.InvalidSummary();
         invalidSummary.date = new Date().toISOString();
         let start;
@@ -105,11 +105,6 @@ class Matcher {
             return null;
         }
         async function findInvestorMatch(mOffer, mOrder) {
-            // console.log(
-            //   `find match for ${mOrder.investorName} --> ${mOffer.supplierName} ${
-            //     mOffer.offerAmount
-            //   } profiles: ${profiles.length}`
-            // );
             let profile;
             profiles.forEach(p => {
                 if (mOrder.investorProfile ===

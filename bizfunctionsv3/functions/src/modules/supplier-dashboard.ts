@@ -29,7 +29,6 @@ export const supplierDashboard = functions.https.onRequest(
     console.log(`##### Incoming supplierId ${request.body.id}`);
     console.log(`##### Incoming documentId ${request.body.documentId}`);
 
-    const supplierId = request.body.id;
     const documentId = request.body.documentId;
 
     const result = {

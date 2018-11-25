@@ -28,6 +28,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
     const data = request.body.data;
 
     const apiSuffix = "MakeInvestorInvoiceSettlement";
+    const fs = admin.firestore();
 
     if (validate() === true) {
       await writeToBFN();
@@ -73,105 +74,29 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
 
     async function writeToFirestore(mdata) {
       try {
-        let mdocID;
         mdata.intDate = new Date().getTime();
         mdata.date = new Date().toISOString();
-        const key = mdata.offer.split("#")[1];
         
-        await admin.firestore().collection('settlements').add(mdata);
-        const snapshot = await admin
-          .firestore()
-          .collection("invoiceOffers")
-          .where("offerId", "==", key)
-          .get();
+        const setlmtRef = await fs.collection('settlements').add(mdata);
 
-        snapshot.forEach(doc => {
-          mdocID = doc.id;
-        });
-
-        let qSnapshot1;
-        if (mdocID) {
-          qSnapshot1 = await admin
-            .firestore()
-            .collection("invoiceOffers")
-            .doc(mdocID)
-            .collection("invoiceBids")
-            .where("invoiceBidId", "==", mdata.invoiceBid.split("#")[1])
-            .get();
-
-          let ref;
-          let bid;
-          qSnapshot1.forEach(doc => {
-            ref = doc.ref;
-            bid = doc.data();
-            bid.isSettled = true;
-          });
-          await ref.set(bid).catch(function(err) {
-            console.log(err);
-            handleError("Failed to update invoiceBid");
-          });
-          console.log("InvoiceBid updated with isSettled flag");
-          await ref
-            .collection("settlements")
-            .add(mdata)
-            .catch(function(error) {
-              console.log(error);
-              handleError("Failed to write settlement to Firestore");
-            });
-          console.log(`InvestorInvoiceSettlement written to Firestore`);
+        //update the bid to isSettled = true
+        const qSnap = await fs.collection('invoiceBids')
+        .where('invoiceBidId', '==', mdata.invoiceBid.split('#')[1])
+        .get()
+        if (qSnap.docs.length === 0) {
+          throw new Error('Could not find invoiceBid for update')
         }
+        const kdata = qSnap.docs[0].data();
+        const mref = qSnap.docs[0].ref;
+        kdata.isSettled = true;
+        kdata.settlementDate = new Date().toISOString()
+        kdata.settlementDocRef = setlmtRef.path.split('/')[1]
+        await mref.set(kdata);
+          
 
-        let docID;
-
-        const investorId = mdata.investor.split("#")[1];
-        let msnapshot;
-        msnapshot = await admin
-          .firestore()
-          .collection("investors")
-          .where("participantId", "==", investorId)
-          .get();
-
-        msnapshot.forEach(doc => {
-          docID = doc.id;
-        });
-
-        if (docID) {
-          let qSnap3;
-          qSnap3 = await admin
-            .firestore()
-            .collection("investors")
-            .doc(docID)
-            .collection("invoiceBids")
-            .where("invoiceBidId", "==", mdata.invoiceBid.split("#")[1])
-            .get();
-
-          let ref3;
-          let mBid;
-          qSnap3.forEach(doc => {
-            ref3 = doc.ref;
-            mBid = doc.data();
-            mBid.isSettled = true;
-          });
-          await ref3.set(mBid).catch(function(err) {
-            console.log(err);
-            handleError("Failed to update investors invoiceBid");
-          });
-          console.log(`Investors invoiceBid updated with isSettled flag`);
-          await ref3
-            .collection("settlements")
-            .add(mdata)
-            .catch(function(error) {
-              console.log(error);
-              handleError("Failed to write settlement to Firestore");
-            });
-          console.log(
-            `InvestorInvoiceSettlement written to investors node in Firestore`
-          );
-        }
-
-        await sendMessageToTopic(mdata);
+        await sendMessageToTopic(kdata);
         console.log("Everything seems OK. InvestorInvoiceSettlements done!");
-        response.status(200).send(mdata);
+        response.status(200).send(kdata);
       } catch (e) {
         console.log(e);
         handleError("Houston, we got one of dem!");

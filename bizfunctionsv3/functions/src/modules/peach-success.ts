@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as BFNConstants from "../models/constants";
-import * as AxiosComms from "./axios-comms";
 
 export const peachSuccess = functions.https.onRequest(
   async (request, response) => {
@@ -46,21 +45,6 @@ export const peachSuccess = functions.https.onRequest(
       console.log(`sending PeachSuccess to topic: ${topic}`);
       return admin.messaging().sendToTopic(topic, payload);
     }
-    function handleError(message) {
-      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          name: "peachNotification",
-          message: message,
-          data: request.body.data,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send(message);
-      }
-    }
+
   }
 );

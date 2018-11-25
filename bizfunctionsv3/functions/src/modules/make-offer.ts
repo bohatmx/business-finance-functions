@@ -84,6 +84,7 @@ export const makeOffer = functions.https.onRequest(
     async function writeToFirestore(mdata) {
       mdata.intDate = new Date().getTime()
       mdata.date = new Date().toISOString()
+    
       try {
         let ref1;
         ref1 = await admin

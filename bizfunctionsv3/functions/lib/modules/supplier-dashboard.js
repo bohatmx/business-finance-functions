@@ -25,7 +25,6 @@ exports.supplierDashboard = functions.https.onRequest(async (request, response) 
     }
     console.log(`##### Incoming supplierId ${request.body.id}`);
     console.log(`##### Incoming documentId ${request.body.documentId}`);
-    const supplierId = request.body.id;
     const documentId = request.body.documentId;
     const result = {
         totalOpenOffers: 0,
