@@ -31,7 +31,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
     const fs = admin.firestore();
 
     if (validate() === true) {
-      await writeToBFN();
+      await writeSettlementToBFN();
     }
 
     return null;
@@ -46,7 +46,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
       }
       return true;
     }
-    async function writeToBFN() {
+    async function writeSettlementToBFN() {
       let url;
       if (debug) {
         url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
@@ -62,7 +62,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
         data.date = new Date().toISOString();
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
-          return writeToFirestore(mresponse.data);
+          return writeSettlementToFirestore(mresponse.data);
         } else {
           console.log(`** BFN ERROR ## ${mresponse.data}`);
           handleError(mresponse);
@@ -72,13 +72,14 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
       }
     }
 
-    async function writeToFirestore(mdata) {
+    async function writeSettlementToFirestore(mdata) {
       try {
         mdata.intDate = new Date().getTime();
         mdata.date = new Date().toISOString();
         
         const setlmtRef = await fs.collection('settlements').add(mdata);
-
+        mdata.documentReference = setlmtRef.id
+        await setlmtRef.set(mdata)
         //update the bid to isSettled = true
         const qSnap = await fs.collection('invoiceBids')
         .where('invoiceBidId', '==', mdata.invoiceBid.split('#')[1])
@@ -90,7 +91,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
         const mref = qSnap.docs[0].ref;
         kdata.isSettled = true;
         kdata.settlementDate = new Date().toISOString()
-        kdata.settlementDocRef = setlmtRef.path.split('/')[1]
+        kdata.settlementDocRef = setlmtRef.id
         await mref.set(kdata);
           
 
