@@ -21,7 +21,6 @@ export const executeAutoTrades = functions
         "Firebase settings completed. Should be free of annoying messages from Google :) :)"
       );
     } catch (e) {
-      console.log(e);
     }
 
     if (!request.body) {
@@ -35,7 +34,7 @@ export const executeAutoTrades = functions
     let profiles: Data.InvestorProfile[] = [];
     let offers: Data.Offer[] = [];
     let units: Data.ExecutionUnit[] = [];
-    const summary = {
+    const autoTradeStart = {
       totalValidBids: 0,
       totalOffers: 0,
       totalInvalidBids: 0,
@@ -64,28 +63,28 @@ export const executeAutoTrades = functions
       if (result > 0) {
         await buildUnits();
         units.map(unit => {
-          summary.possibleAmount += unit.offer.offerAmount;
+          autoTradeStart.possibleAmount += unit.offer.offerAmount;
         });
         await sendMessageToHeartbeatTopic(
           "Preparing to start writing bids to BFN"
         );
         await writeBids();
       }
-      console.log(summary);
+      console.log(autoTradeStart);
       return finishAutoTrades();
     }
     async function finishAutoTrades() {
       const now: number = new Date().getTime();
       const elapsed = (now - startTime) / 1000;
-      summary.elapsedSeconds = elapsed;
+      autoTradeStart.elapsedSeconds = elapsed;      
       await updateAutoTradeStart();
 
       console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
-            ${summary.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
+            ${autoTradeStart.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
       await sendMessageToHeartbeatTopic(
-        `AutoTrade Session complete, elapsed: ${summary.elapsedSeconds} seconds`
+        `AutoTrade Session complete, elapsed: ${autoTradeStart.elapsedSeconds} seconds`
       );
-      return response.status(200).send(summary);
+      return response.status(200).send(autoTradeStart);
     }
     async function writeBids() {
       for (const unit of units) {
@@ -97,12 +96,17 @@ export const executeAutoTrades = functions
       return 0;
     }
     async function writeBidToBFN(unit) {
+      if (!unit.offer.documentReference) {
+        console.log(`Offer has no documentReference. Bailing out!`);
+        throw new Error(`Offer has no documentReference. Bailing out!`)
+      }
+      console.log(`offer document ref: ${unit.offer.documentReference}`)
       try {
         //get existing invoice bids for this offer
         const bidQuerySnap = await admin
           .firestore()
           .collection("invoiceOffers")
-          .doc(unit.offer.offerDocRef)
+          .doc(unit.offer.documentReference)
           .collection("invoiceBids")
           .get();
 
@@ -147,12 +151,18 @@ export const executeAutoTrades = functions
           customer: unit.offer.customer,
           discountPercent: unit.offer.discountPercent,
           investorDocRef: unit.profile.investorDocRef,
-          offerDocRef: unit.offer.offerDocRef,
+          offerDocRef: unit.offer.documentReference,
+          supplierDocRef: unit.offer.supplierDocumentRef,
           startTime: new Date().toISOString(),
           endTime: mdate.toISOString()
         };
         console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
+        if (!bid.offerDocRef) {
+          console.log('####### SOS SOS abandoning ship! offerDocRef is null')
+          throw new Error(`Houston, stubborn error - offerDocRef is always NULL: ${bid.offerDocRef}`)
+        }
         await InvoiceBidHelper.writeInvoiceBidToBFNandFirestore(bid, debug);
+        autoTradeStart.totalValidBids++
       } catch (e) {
         console.log(e);
         throw e;
@@ -172,10 +182,10 @@ export const executeAutoTrades = functions
         .get()
         .catch(e => {
           console.log(e);
-          handleError(e);
+          throw e;
         });
       console.log(`###### open offers found: ${qso.docs.length}`);
-      summary.totalOffers = qso.docs.length;
+      autoTradeStart.totalOffers = qso.docs.length;
       offers = [];
       qso.docs.forEach(doc => {
         const data = doc.data();
@@ -193,6 +203,8 @@ export const executeAutoTrades = functions
         offer.customerName = data["customerName"];
         offer.supplier = data["supplier"];
         offer.supplierName = data["supplierName"];
+        offer.documentReference = data["documentReference"];
+
         if (!data["customer"]) {
           throw new Error(
             `##### ERROR - customer is NULL. you have to be kidding! ${
@@ -211,8 +223,6 @@ export const executeAutoTrades = functions
         console.log("### Open offers found: " + qso.docs.length);
       }
 
-      shuffleOffers();
-      ///////
       let qs;
       qs = await admin
         .firestore()
@@ -221,7 +231,7 @@ export const executeAutoTrades = functions
         .get()
         .catch(e => {
           console.log(e);
-          handleError(e);
+          throw e;
         });
       orders = [];
       qs.docs.forEach(doc => {
@@ -253,7 +263,7 @@ export const executeAutoTrades = functions
         .get()
         .catch(e => {
           console.log(e);
-          handleError(e);
+          throw e;
         });
       profiles = [];
       qsp.docs.forEach(doc => {
@@ -287,15 +297,12 @@ export const executeAutoTrades = functions
       console.log("################### buildUnits ######################");
       try {
         units = await Matcher.Matcher.match(profiles, orders, offers);
-        if (units.length > 50) {
-          handleError("We gotta a big problem! units: " + units.length);
-        }
       } catch (e) {
         console.log(e);
-        handleError("Matching fell down.");
+        throw new Error(`Matching fell down. ${e}`);
       }
       await sendMessageToHeartbeatTopic(
-        `Matcher has created ${units.length} execution unit`
+        `Matcher has created ${units.length} execution units. Ready to rumble!`
       );
       console.log(
         `++++++++++++++++++++ :: ExecutionUnits ready for processing, execution units: ${
@@ -315,24 +322,16 @@ export const executeAutoTrades = functions
       );
       console.log(orders);
     }
-    function shuffleOffers() {
-      // console.log(offers);
-      for (let i = offers.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [offers[i], offers[j]] = [offers[j], offers[i]];
-      }
-      console.log("########## shuffled offers ........");
-      // console.log(offers);
-    }
+
     async function writeAutoTradeStart() {
       await admin
         .firestore()
         .collection("autoTradeStarts")
         .doc(startKey)
-        .set(summary)
+        .set(autoTradeStart)
         .catch(e => {
           console.error(e);
-          handleError(e);
+          throw e;
         });
       console.log(
         `*********** autoTradeStart written to Firestore startKey: ${startKey}`
@@ -340,16 +339,21 @@ export const executeAutoTrades = functions
       return 0;
     }
     async function updateAutoTradeStart() {
-      summary.dateEnded = new Date().toISOString();
+      autoTradeStart.dateEnded = new Date().toISOString();
+      let t = 0.0
+      units.forEach((u) => {
+        t += u.offer.offerAmount
+      })
+      autoTradeStart.totalAmount = t;
       let mf;
       mf = await admin
         .firestore()
         .collection("autoTradeStarts")
         .doc(startKey)
-        .set(summary)
+        .set(autoTradeStart)
         .catch(e => {
           console.log(e);
-          handleError(e);
+          throw e;
         });
       console.log(
         "################### updated AutoTradeStart ######################"
@@ -376,25 +380,5 @@ export const executeAutoTrades = functions
       console.log("sending heartbeat to topic: " + mTopic);
       return await admin.messaging().sendToTopic(mTopic, payload);
     }
-    function handleError(message) {
-      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      const now: number = new Date().getTime();
-      const elapsed = (now - startTime) / 1000;
-      summary.elapsedSeconds = elapsed;
-      try {
-        const payload = {
-          name: "AutoTradeExecution",
-          message: message,
-          date: new Date().toISOString(),
-          summary: summary
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response
-          .status(400)
-          .send("Auto Trade fell down and could not get up again!");
-      }
-    }
+
   });

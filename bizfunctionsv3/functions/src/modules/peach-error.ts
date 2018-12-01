@@ -9,8 +9,8 @@ import * as BFNConstants from "../models/constants";
 export const peachError = functions.https.onRequest(
   async (request, response) => {
     console.log(request.body)
-    try {
-      const firestore = admin.firestore();
+    const firestore = admin.firestore();
+    try {   
       const settings = { /* your settings... */ timestampsInSnapshots: true };
       firestore.settings(settings);
       console.log(
@@ -25,8 +25,8 @@ export const peachError = functions.https.onRequest(
 
     async function writeToFirestore(data) {
       try {
-        const mRef = await admin.firestore().collection('peachErrors').add(data);
-        console.log(`Peach error written, path - ${mRef.path}`)
+        const writeResult = await firestore.collection('peachErrors').doc(data.payment_key).set(data);
+        console.log(`Peach error written, writeResult.writeTime - ${writeResult.writeTime}`)
       } catch (e) {
         console.log(e)
       }

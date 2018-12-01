@@ -22,7 +22,8 @@ exports.peachCancel = functions.https.onRequest(async (request, response) => {
     return response.status(200).send('OK');
     async function writeToFirestore(data) {
         try {
-            const mRef = await admin.firestore().collection('peachCancellations').add(data);
+            const mRef = await admin.firestore()
+                .collection('peachCancellations').add(data);
             console.log(`Peach cancellation written, path - ${mRef.path}`);
         }
         catch (e) {
@@ -46,23 +47,6 @@ exports.peachCancel = functions.https.onRequest(async (request, response) => {
         const topic = BFNConstants.Constants.TOPIC_PEACH_CANCEL;
         console.log(`sending PeachCancel to topic: ${topic}`);
         return admin.messaging().sendToTopic(topic, payload);
-    }
-    function handleError(message) {
-        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-        try {
-            const payload = {
-                name: 'peachNotification',
-                message: message,
-                data: request.body.data,
-                date: new Date().toISOString()
-            };
-            console.log(payload);
-            response.status(400).send(payload);
-        }
-        catch (e) {
-            console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send(message);
-        }
     }
 });
 //# sourceMappingURL=peach-cancel.js.map

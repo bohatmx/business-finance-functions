@@ -7,9 +7,9 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 exports.peachSuccess = functions.https.onRequest(async (request, response) => {
-    console.log(request);
+    console.log(request.body);
+    const firestore = admin.firestore();
     try {
-        const firestore = admin.firestore();
         const settings = { /* your settings... */ timestampsInSnapshots: true };
         firestore.settings(settings);
         console.log("Firebase settings completed. Should be free of annoying messages from Google");
@@ -17,8 +17,13 @@ exports.peachSuccess = functions.https.onRequest(async (request, response) => {
     catch (e) {
         //console.log(e);
     }
+    await writeToFirestore(request.body);
     await sendToTopic(request.body);
     return response.status(200).send(request.body);
+    async function writeToFirestore(data) {
+        const ref = await firestore.collection('peachSuccesses').add(data);
+        console.log(`peach success written to Firestore ${ref.path}`);
+    }
     async function sendToTopic(data) {
         let mdata = data;
         if (!data) {

@@ -8,8 +8,8 @@ const admin = require("firebase-admin");
 const BFNConstants = require("../models/constants");
 exports.peachError = functions.https.onRequest(async (request, response) => {
     console.log(request.body);
+    const firestore = admin.firestore();
     try {
-        const firestore = admin.firestore();
         const settings = { /* your settings... */ timestampsInSnapshots: true };
         firestore.settings(settings);
         console.log("Firebase settings completed. Should be free of annoying messages from Google");
@@ -22,8 +22,8 @@ exports.peachError = functions.https.onRequest(async (request, response) => {
     return response.status(200).send('OK');
     async function writeToFirestore(data) {
         try {
-            const mRef = await admin.firestore().collection('peachErrors').add(data);
-            console.log(`Peach error written, path - ${mRef.path}`);
+            const writeResult = await firestore.collection('peachErrors').doc(data.payment_key).set(data);
+            console.log(`Peach error written, writeResult.writeTime - ${writeResult.writeTime}`);
         }
         catch (e) {
             console.log(e);

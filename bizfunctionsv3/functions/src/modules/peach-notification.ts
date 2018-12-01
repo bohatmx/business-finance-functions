@@ -29,8 +29,9 @@ export const peachNotify = functions.https.onRequest(
     const apiSuffix = "MakeInvestorInvoiceSettlement";
     const debug = true; //TODO - to be retrieved from ENV VAR
     const bidDocumentId = request.body.merchant_reference;
+    const paymentKey = request.body.payment_key;
 
-    await fs.collection("peachTransactions").add(request.body);
+    await fs.collection("peachTransactions").doc(paymentKey).set(request.body);
     console.log(`added peach notification to peachTransactions`);
     await writeSettlement();
     return response.status(200).send("OK");

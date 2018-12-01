@@ -76,31 +76,31 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
       try {
         mdata.intDate = new Date().getTime();
         mdata.date = new Date().toISOString();
-        
-        const setlmtRef = await fs.collection('settlements').add(mdata);
-        mdata.documentReference = setlmtRef.id
-        await setlmtRef.set(mdata)
-        //update the bid to isSettled = true
-        const qSnap = await fs.collection('invoiceBids')
-        .where('invoiceBidId', '==', mdata.invoiceBid.split('#')[1])
-        .get()
-        if (qSnap.docs.length === 0) {
-          throw new Error('Could not find invoiceBid for update')
-        }
-        const kdata = qSnap.docs[0].data();
-        const mref = qSnap.docs[0].ref;
-        kdata.isSettled = true;
-        kdata.settlementDate = new Date().toISOString()
-        kdata.settlementDocRef = setlmtRef.id
-        await mref.set(kdata);
-          
 
-        await sendMessageToTopic(kdata);
-        console.log("Everything seems OK. InvestorInvoiceSettlements done!");
-        response.status(200).send(kdata);
+        const setlmtRef = await fs.collection("settlements").add(mdata);
+        mdata.documentReference = setlmtRef.path.split("/")[1];
+        await setlmtRef.set(mdata);
+        //update the bid to isSettled = true
+        const documentSnapshot = await fs
+          .collection("invoiceBids")
+          .doc(mdata.invoiceBidDocRef)
+          .get();
+        if (!documentSnapshot.exists) {
+          throw new Error(`Could not find invoiceBid for update, invoiceBidDocRef: ${mdata.invoiceBidDocRef}`);
+        }
+        const kdata = documentSnapshot.data();
+        const mref = documentSnapshot.ref;
+        kdata.isSettled = true;
+        kdata.settlementDate = new Date().toISOString();
+        kdata.settlementDocRef = mdata.documentReference;
+        await mref.set(kdata);
+
+        await sendMessageToTopic(mdata);
+        console.log("Everything seems OK. InvestorInvoiceSettlements done! - bid updated to settled");
+        response.status(200).send(mdata);
       } catch (e) {
         console.log(e);
-        handleError("Houston, we got one of dem!");
+        throw e;
       }
     }
     async function sendMessageToTopic(mdata) {

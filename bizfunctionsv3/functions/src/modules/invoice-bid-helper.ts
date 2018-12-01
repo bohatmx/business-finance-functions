@@ -13,8 +13,10 @@ export class InvoiceBidHelper {
       url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
     }
 
+    console.log(`InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`)
     const storeInvestorRef = data.investorDocRef;
     const storeOfferRef = data.offerDocRef;
+    console.log(`InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef}`)
     data.investorDocRef = null;
     data.offerDocRef = null;
     data.initDate = null;
@@ -25,15 +27,15 @@ export class InvoiceBidHelper {
 
     try {
       data.date = new Date().toISOString();
+      console.log(`InvoiceBidHelper: data direct to BFN: ${JSON.stringify(data)}`)
       const mresponse = await AxiosComms.AxiosComms.execute(url, data);
       if (mresponse.status === 200) {
         mresponse.data.investorDocRef = storeInvestorRef;
         mresponse.data.offerDocRef = storeOfferRef;
-        mresponse.data.initDate = new Date().getTime()
         return writeToFirestore(mresponse.data);
       } else {
         console.log(`** BFN ERROR ## ${mresponse.data}`);
-        throw new Error(mresponse);
+        throw new Error(mresponse.data);
       }
     } catch (error) {
       throw error;
@@ -43,7 +45,7 @@ export class InvoiceBidHelper {
       try {
         mdata.intDate = new Date().getTime();
         mdata.date = new Date().toISOString();
-        console.log(mdata);
+        console.log(`InvoiceBidHelper: data direct to Firestore: ${JSON.stringify(mdata)}`);
         
         const offerId = mdata.offer.split("#")[1];
         const ref = await admin
@@ -51,7 +53,7 @@ export class InvoiceBidHelper {
           .collection("invoiceBids")
           .add(mdata)
           
-        console.log(`Invoice bid written to Firestore`);
+        console.log(`Invoice bid written to Firestore. YAY!`);
         mdata.documentReference = ref.path.split('/')[1];
         await ref.set(mdata);
         console.log(`Invoice bid updated with docRef`);

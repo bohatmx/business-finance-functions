@@ -69,29 +69,30 @@ exports.makeInvestorInvoiceSettlement = functions.https.onRequest(async (request
         try {
             mdata.intDate = new Date().getTime();
             mdata.date = new Date().toISOString();
-            const setlmtRef = await fs.collection('settlements').add(mdata);
-            mdata.documentReference = setlmtRef.id;
+            const setlmtRef = await fs.collection("settlements").add(mdata);
+            mdata.documentReference = setlmtRef.path.split("/")[1];
             await setlmtRef.set(mdata);
             //update the bid to isSettled = true
-            const qSnap = await fs.collection('invoiceBids')
-                .where('invoiceBidId', '==', mdata.invoiceBid.split('#')[1])
+            const documentSnapshot = await fs
+                .collection("invoiceBids")
+                .doc(mdata.invoiceBidDocRef)
                 .get();
-            if (qSnap.docs.length === 0) {
-                throw new Error('Could not find invoiceBid for update');
+            if (!documentSnapshot.exists) {
+                throw new Error(`Could not find invoiceBid for update, invoiceBidDocRef: ${mdata.invoiceBidDocRef}`);
             }
-            const kdata = qSnap.docs[0].data();
-            const mref = qSnap.docs[0].ref;
+            const kdata = documentSnapshot.data();
+            const mref = documentSnapshot.ref;
             kdata.isSettled = true;
             kdata.settlementDate = new Date().toISOString();
-            kdata.settlementDocRef = setlmtRef.id;
+            kdata.settlementDocRef = mdata.documentReference;
             await mref.set(kdata);
-            await sendMessageToTopic(kdata);
-            console.log("Everything seems OK. InvestorInvoiceSettlements done!");
-            response.status(200).send(kdata);
+            await sendMessageToTopic(mdata);
+            console.log("Everything seems OK. InvestorInvoiceSettlements done! - bid updated to settled");
+            response.status(200).send(mdata);
         }
         catch (e) {
             console.log(e);
-            handleError("Houston, we got one of dem!");
+            throw e;
         }
     }
     async function sendMessageToTopic(mdata) {
