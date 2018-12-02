@@ -4,6 +4,8 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as constants from "../models/constants";
+import * as data from "../models/data";
 
 // const Firestore = require("firestore");
 
@@ -17,10 +19,10 @@ export const investorDashboard = functions.https.onRequest(
       console.log("ERROR - request has no id");
       return response.status(400).send("request has no id");
     }
-    if (!request.body.documentId) {
-      console.log("ERROR - request has no documentId");
-      return response.status(400).send("request has no documentId");
-    }
+    // if (!request.body.documentId) {
+    //   console.log("ERROR - request has no documentId");
+    //   return response.status(400).send("request has no documentId");
+    // }
 
     try {
       const firestore = admin.firestore();
@@ -39,7 +41,7 @@ export const investorDashboard = functions.https.onRequest(
     );
 
     const investorId = request.body.id;
-    const documentId = request.body.documentId;
+    // const documentId = request.body.documentId;
     let limit = request.body.limit;
     if (!limit) {
       limit = 100;
@@ -59,47 +61,90 @@ export const investorDashboard = functions.https.onRequest(
       averageBidAmount: 0.0,
       averageDiscountPerc: 0.0,
       totalOfferAmount: 0.0,
-      totalOffers: 0
+      totalOffers: 0,
+      unsettledBids: [],
+      settledBids: [],
+      settlements: [],
+      openOffers: [],
+      totalSettlements: 0,
+      totalSettlementAmount: 0.0
     };
 
     await getOpenOffers();
     await getBids();
+    await getSettlements();
 
     console.log(result);
     return response.status(200).send(result);
 
+    function getBid(doc) {
+      const bid: data.InvoiceBid = new data.InvoiceBid();
+      bid.amount = doc.amount;
+      bid.autoTradeOrder = doc.autoTradeOrder;
+      bid.date = doc.date;
+      bid.discountPercent = doc.discountPercent;
+      bid.documentReference = doc.documentReference;
+      bid.endTime = doc.endTime;
+      bid.investor = doc.investor;
+      bid.investorName = doc.investorName;
+      bid.invoiceBidId = doc.invoiceBidId;
+      bid.offer = doc.offer;
+      bid.offerDocRef = doc.offerDocRef;
+      bid.customer = doc.customer;
+      bid.customerName = doc.customerName;
+      bid.isSettled = doc.isSettled;
+      bid.reservePercent = doc.reservePercent;
+      bid.startTime = doc.startTime;
+      bid.supplierFCMToken = doc.supplierFCMToken;
+      bid.supplier = doc.supplier;
+      bid.investorDocRef = doc.investorDocRef;
+      bid.supplierDocRef = doc.supplierDocRef;
+      bid.supplierName = doc.supplierName;
+      bid.user = doc.user;
+      bid.wallet = doc.wallet;
+      bid.intDate = doc.intDate;
+
+      return bid;
+    }
     async function getBids() {
       try {
-        let queryRef;
-        queryRef = await admin
+        let querySnapshot;
+        querySnapshot = await admin
           .firestore()
-          .collection("investors")
-          .doc(documentId)
           .collection("invoiceBids")
-          .get()
-          .catch(function(error) {
-            console.log(error);
-            handleError(error);
-          });
+          .where(
+            "investor",
+            "==",
+            constants.Constants.NameSpace + `Investor#${investorId}`
+          )
+          .orderBy("date")
+          .get();
 
+        console.log(
+          `Investor has ${querySnapshot.docs.length} invoiceBids on file`
+        );
         let totPerc = 0.0;
         let countDiscounts = 0;
-        queryRef.docs.forEach(doc => {
-          result.totalBidAmount += doc.data().amount;
+        querySnapshot.docs.forEach(doc => {
+          const bid: data.InvoiceBid = getBid(doc.data());
+          result.totalBidAmount += bid.amount;
           result.totalBids++;
 
-          if (doc.data().discountPercent) {
-            totPerc += doc.data().discountPercent;
+          if (bid.discountPercent) {
+            totPerc += bid.discountPercent;
             countDiscounts++;
           }
-          if (doc.data().isSettled === false) {
-            result.totalUnsettledAmount += doc.data().amount;
+          if (bid.isSettled === false) {
+            result.totalUnsettledAmount += bid.amount;
             result.totalUnsettledBids++;
+            result.unsettledBids.push(doc.data());
           } else {
-            result.totalSettledAmount += doc.data().amount;
+            result.totalSettledAmount += bid.amount;
             result.totalSettledBids++;
+            result.settledBids.push(doc.data());
           }
         });
+
         if (result.totalBids > 0) {
           result.averageBidAmount = result.totalBidAmount / result.totalBids;
         }
@@ -115,59 +160,70 @@ export const investorDashboard = functions.https.onRequest(
         return null;
       } catch (e) {
         console.log(e);
-        handleError(e);
+        throw e;
       }
     }
     async function getOpenOffers() {
-       let queryRef;
+      let querySnapshot;
       try {
-        queryRef = await admin
+        querySnapshot = await admin
           .firestore()
           .collection("invoiceOffers")
           .where("isOpen", "==", true)
-          .where('endTime', '>', new Date().toISOString())
-          .orderBy('endTime')
+          .where("endTime", ">", new Date().toISOString())
+          .orderBy("endTime")
           .limit(limit)
-          .get()
-          .catch(function(error) {
-            console.log(error);
-            handleError(error);
-          });
+          .get();
         let tot = 0.0;
         let count = 0;
-        console.log(`offers found ${queryRef.docs.length} after isOpen search`)
-        queryRef.docs.forEach(doc => {
+        console.log(
+          `offers found ${querySnapshot.docs.length} after isOpen search`
+        );
+        querySnapshot.docs.forEach(doc => {
           if (doc.data().isOpen === true) {
             tot += doc.data().offerAmount;
-            count++
+            count++;
           }
-          result.totalOfferAmount += doc.data().offerAmount
+          result.totalOfferAmount += doc.data().offerAmount;
+          result.openOffers.push(doc.data());
         });
         result.totalOpenOfferAmount = tot;
         result.totalOpenOffers = count;
-        result.totalOffers = queryRef.docs.length
+        result.totalOffers = querySnapshot.docs.length;
 
         return null;
       } catch (e) {
         console.log(e);
-        handleError(e);
+        throw e;
+      }
+    }
+    async function getSettlements() {
+      let querySnapshot;
+      try {
+        querySnapshot = await admin
+          .firestore()
+          .collection("settlements")
+          .where(
+            "investor",
+            "==",
+            constants.Constants.NameSpace + `Investor#${investorId}`
+          )
+          .orderBy("date", "desc")
+          .limit(1000)
+          .get();
+        
+        console.log(`investor settlements found ${querySnapshot.docs.length} `);
+        querySnapshot.docs.forEach(doc => {
+          result.settlements.push(doc.data());
+          result.totalSettlementAmount += doc.data().amount;
+          result.totalSettlements++
+        });
+        return null;
+      } catch (e) {
+        console.log(e);
+        throw e;
       }
     }
 
-    function handleError(message) {
-      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          name: "investorDashboard",
-          message: message,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send("Dashboard Query Failed");
-      }
-    }
   }
 );

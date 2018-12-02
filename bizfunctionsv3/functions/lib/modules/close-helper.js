@@ -17,7 +17,7 @@ class CloseHelper {
         try {
             const mresponse = await AxiosComms.AxiosComms.execute(url, map);
             if (mresponse.status === 200) {
-                return writeCloseOfferToFirestore();
+                return updateCloseOfferToFirestore();
             }
             else {
                 console.log(`******** BFN ERROR ########### mresponse.status: ${mresponse.status}`);
@@ -29,7 +29,7 @@ class CloseHelper {
             console.log(error);
             throw error;
         }
-        async function writeCloseOfferToFirestore() {
+        async function updateCloseOfferToFirestore() {
             console.log(`################### writeToFirestore, close Offer :${offerDocRef}`);
             try {
                 const snapshot = await admin

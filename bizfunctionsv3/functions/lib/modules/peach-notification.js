@@ -28,48 +28,82 @@ exports.peachNotify = functions.https.onRequest(async (request, response) => {
     const debug = true; //TODO - to be retrieved from ENV VAR
     const bidDocumentId = request.body.merchant_reference;
     const paymentKey = request.body.payment_key;
-    await fs.collection("peachTransactions").doc(paymentKey).set(request.body);
+    const transactionRef = await fs
+        .collection("peachTransactions")
+        .doc(paymentKey)
+        .set(request.body);
     console.log(`added peach notification to peachTransactions`);
     await writeSettlement();
     return response.status(200).send("OK");
     async function writeSettlement() {
         console.log(`write settlement to BFN and Firestore`);
-        const docSnap = await fs
-            .collection("invoiceBids")
-            .doc(bidDocumentId)
-            .get();
-        if (!docSnap.exists) {
-            //THIS IS A BATCHED PAYMENT
-            //check this documentId against multiKeys
-            const qSnap = await fs
-                .collection("invoiceBidSettlementBatches")
+        try {
+            const docSnap = await fs
+                .collection("invoiceBids")
                 .doc(bidDocumentId)
                 .get();
-            const invoiceBidKeys = qSnap.data();
-            const keys = invoiceBidKeys.keys;
-            console.log(invoiceBidKeys);
-            for (const key of keys) {
-                console.log(`######## invoiceBid to settle: ${key}`);
-                const mbid = await fs
-                    .collection("invoiceBids")
-                    .doc(key)
-                    .get();
-                //create settlement for this bid
-                if (mbid.exists) {
-                    await createSettlement(mbid.data(), key);
-                }
-                else {
-                    console.log(`ERROR: Original invoice bid not found. Cannot settle: ${key}`);
-                    //TODO - send to some error topic, or write to FS
-                }
+            if (!docSnap.exists) {
+                await doBatch();
+            }
+            else {
+                //THIS IS A SINGLE PAYMENT
+                const bid = docSnap.data();
+                await createSettlement(bid, bidDocumentId);
             }
         }
-        else {
-            //THIS IS A SINGLE PAYMENT
-            const bid = docSnap.data();
-            await createSettlement(bid, bidDocumentId);
+        catch (e) {
+            console.error(e);
+            throw e;
         }
         return null;
+    }
+    async function doBatch() {
+        //THIS IS A BATCHED PAYMENT
+        //check this documentId against multiKeys
+        try {
+            const batchRef = fs
+                .collection("invoiceBidSettlementBatches")
+                .doc(bidDocumentId);
+            await fs.runTransaction(function (transaction) {
+                return transaction.get(batchRef).then(async function (batchDocument) {
+                    if (!batchDocument.exists) {
+                        throw new Error(`Payment Batch Document does not exist! ${bidDocumentId}`);
+                    }
+                    const invoiceBidKeys = batchDocument.data();
+                    const keys = invoiceBidKeys.keys;
+                    console.log(invoiceBidKeys);
+                    for (const key of keys) {
+                        console.log(`######## invoiceBid to settle: ${key}`);
+                        const mbid = await fs
+                            .collection("invoiceBids")
+                            .doc(key)
+                            .get();
+                        //create settlement for this bid
+                        if (mbid.exists) {
+                            await createSettlement(mbid.data(), key);
+                        }
+                        else {
+                            console.log(`ERROR: Original invoice bid not found. Cannot settle: ${key}`);
+                            throw new Error(`InvoiceBid not found for settlement, documentId: ${key}`);
+                        }
+                    }
+                });
+            }).then(function () {
+                console.log(`Payment Batch Transaction successfully completed. Yebo!`);
+                return null;
+            });
+        }
+        catch (e) {
+            console.log(e);
+            const msg = {
+                documentId: bidDocumentId,
+                date: new Date().toISOString(),
+                requestBody: request.body,
+                peachTransactionRef: transactionRef
+            };
+            await fs.collection("paymentBatchErrors").add(msg);
+            throw e;
+        }
     }
     async function createSettlement(bid, documentId) {
         const settlement = {

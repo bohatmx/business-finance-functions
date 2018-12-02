@@ -16,9 +16,11 @@ export class InvoiceBidHelper {
     console.log(`InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`)
     const storeInvestorRef = data.investorDocRef;
     const storeOfferRef = data.offerDocRef;
+    const storeSupplierRef = data.supplierDocRef;
     console.log(`InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef}`)
     data.investorDocRef = null;
     data.offerDocRef = null;
+    data.supplierDocRef = null;
     data.initDate = null;
 
     if (!data.invoiceBidId) {
@@ -32,6 +34,8 @@ export class InvoiceBidHelper {
       if (mresponse.status === 200) {
         mresponse.data.investorDocRef = storeInvestorRef;
         mresponse.data.offerDocRef = storeOfferRef;
+        mresponse.data.supplierDocRef = storeSupplierRef;
+        
         return writeToFirestore(mresponse.data);
       } else {
         console.log(`** BFN ERROR ## ${mresponse.data}`);
@@ -111,9 +115,7 @@ export class InvoiceBidHelper {
       try {
         const msnapshot = await admin
           .firestore()
-          .collection("invoiceOffers")
-          .doc(offerDocID)
-          .collection("invoiceBids")
+          .collection("invoiceBids").where('offerDocRef','==', offerDocID)
           .get();
         msnapshot.forEach(doc => {
           const reservePercent = doc.data()["reservePercent"];

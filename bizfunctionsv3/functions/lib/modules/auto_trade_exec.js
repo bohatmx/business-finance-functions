@@ -129,6 +129,7 @@ exports.executeAutoTrades = functions
                 discountPercent: unit.offer.discountPercent,
                 investorDocRef: unit.profile.investorDocRef,
                 offerDocRef: unit.offer.documentReference,
+                supplierDocRef: unit.offer.supplierDocumentRef,
                 startTime: new Date().toISOString(),
                 endTime: mdate.toISOString()
             };
