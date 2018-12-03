@@ -11,6 +11,7 @@ import * as RegisterInvoice from './modules/register_invoice'
 import * as AcceptDelivery from './modules/accept_delivery_note'
 import * as AcceptInvoice from './modules/accept_invoice'
 import * as MakeOffer from './modules/make-offer'
+import * as UpdateOffer from './modules/update-offer'
 import * as CloseOffer from './modules/close-offer'
 import * as MakeInvoiceBid from './modules/make_invoice.bid'
 import * as ExecuteAutoTrade from './modules/auto_trade_exec'
@@ -82,6 +83,7 @@ export const registerDeliveryNote = RegisterDeliveryNote.registerDeliveryNote
 export const registerInvoice = RegisterInvoice.registerInvoice
 export const acceptDeliveryNote = AcceptDelivery.acceptDeliveryNote
 export const makeOffer = MakeOffer.makeOffer
+export const updateOffer = UpdateOffer.updateOffer
 export const closeOffer = CloseOffer.closeOffer
 
 export const acceptInvoice = AcceptInvoice.acceptInvoice

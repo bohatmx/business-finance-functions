@@ -68,7 +68,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         }
         catch (error) {
             console.log(error);
-            handleError('RegisterInvoice failed');
+            handleError("RegisterInvoice failed");
         }
     }
     async function writeToFirestore(mdata) {
@@ -82,11 +82,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 .collection("govtEntities")
                 .doc(mdocID)
                 .collection("invoices")
-                .add(mdata)
-                .catch(function (error) {
-                console.log(error);
-                handleError(`RegisterInvoice failed: ${error}`);
-            });
+                .add(mdata);
             console.log(`*** Data successfully written to Firestore! ${ref1.path}`);
             const docID = mdata.supplierDocumentRef;
             let ref3;
@@ -96,13 +92,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .collection("suppliers")
                     .doc(docID)
                     .collection("invoices")
-                    .add(mdata)
-                    .catch(function (error) {
-                    console.log(error);
-                    handleError(`RegisterInvoice failed: ${error}`);
-                });
+                    .add(mdata);
                 console.log(`*** Data written to Firestore suppliers/invoices ${ref3.path}`);
-                await sendMessageToTopic(mdata);
                 await checkAutoAccept(mdata);
             }
         }
@@ -112,8 +103,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         }
     }
     async function sendMessageToTopic(mdata) {
-        const topic = BFNConstants.Constants.TOPIC_INVOICES + mdata.govtEntity.split('#')[1];
-        const topic2 = BFNConstants.Constants.TOPIC_INVOICES + 'admin';
+        const topic = BFNConstants.Constants.TOPIC_INVOICES + mdata.govtEntity.split("#")[1];
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICES + "admin";
         const payload = {
             data: {
                 messageType: "INVOICE",
@@ -121,13 +112,37 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             },
             notification: {
                 title: "Invoice",
-                body: "Invoice from " +
-                    mdata.supplierName +
-                    " amount: " +
-                    mdata.amount
+                body: "Invoice from " + mdata.supplierName + " amount: " + mdata.amount
             }
         };
-        console.log("sending invoice data to topic: " + topic + ' ' + topic2);
+        console.log("sending invoice data to topic: " + topic + " " + topic2);
+        await admin.messaging().sendToTopic(topic2, payload);
+        return await admin.messaging().sendToTopic(topic, payload);
+    }
+    async function sendAcceptanceToTopic(mdata) {
+        const topic = BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES +
+            mdata.govtEntity.split("#")[1];
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES +
+            mdata.supplierDocumentRef;
+        const topic3 = BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES;
+        const payload = {
+            data: {
+                messageType: "INVOICE_ACCEPTANCE",
+                json: JSON.stringify(mdata)
+            },
+            notification: {
+                title: "Invoice Acceptance",
+                body: "Invoice Acceptance from " +
+                    mdata.customerName
+            }
+        };
+        console.log("sending invoice acceptance to topic: " +
+            topic +
+            " " +
+            topic2 +
+            " " +
+            topic3);
+        await admin.messaging().sendToTopic(topic3, payload);
         await admin.messaging().sendToTopic(topic2, payload);
         return await admin.messaging().sendToTopic(topic, payload);
     }
@@ -146,16 +161,15 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 return await acceptInvoice(invoice);
             }
             else {
-                console.log('Customer has no autoAccept - send 200 with invoice');
-                response.status(200).send(invoice);
-                return null;
+                console.log("Customer has no autoAccept - send 200 with invoice");
+                await sendMessageToTopic(invoice);
+                return response.status(200).send(invoice);
             }
         }
         else {
-            const msg = 'Customer record not found';
+            const msg = "Customer record not found";
             console.log(msg);
-            response.status(400).send(msg);
-            return null;
+            throw new Error(msg);
         }
     }
     async function acceptInvoice(invoice) {
@@ -194,6 +208,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 });
                 console.log(`Firestore document added: ${mRef.path}`);
                 await InvoiceUpdate.updateInvoice(mresponse.data);
+                await sendAcceptanceToTopic(mresponse.data);
                 response.status(201).send(invoice);
                 return null;
             }
@@ -218,8 +233,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             response.status(400).send(payload);
         }
         catch (e) {
-            console.log('possible error propagation/cascade here. ignored');
-            response.status(400).send('RegisterInvoice failed');
+            console.log("possible error propagation/cascade here. ignored");
+            response.status(400).send("RegisterInvoice failed");
         }
     }
 });
