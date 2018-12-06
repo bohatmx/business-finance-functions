@@ -18,9 +18,6 @@ export const registerInvoice = functions.https.onRequest(
       const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
       firestore.settings(settings);
-      console.log(
-        "Firebase settings completed. Should be free of annoying messages from Google"
-      );
     } catch (e) {
       console.log(e);
     }
@@ -67,11 +64,11 @@ export const registerInvoice = functions.https.onRequest(
           return writeToFirestore(mresponse.data);
         } else {
           console.log("******** BFN ERROR ### status: " + mresponse.status);
-          handleError(mresponse.data);
+          throw new Error(mresponse.data);
         }
       } catch (error) {
         console.log(error);
-        handleError("RegisterInvoice failed");
+        throw error;
       }
     }
     async function writeToFirestore(mdata) {
@@ -103,18 +100,20 @@ export const registerInvoice = functions.https.onRequest(
           console.log(
             `*** Data written to Firestore suppliers/invoices ${ref3.path}`
           );
-          
+
           await checkAutoAccept(mdata);
         }
       } catch (e) {
         console.log(e);
-        handleError(`RegisterInvoice failed: ${e}`);
+        throw new Error(`RegisterInvoice failed: ${e}`);
       }
     }
     async function sendMessageToTopic(mdata) {
       const topic =
         BFNConstants.Constants.TOPIC_INVOICES + mdata.govtEntity.split("#")[1];
-      const topic2 = BFNConstants.Constants.TOPIC_INVOICES + "admin";
+      const topic1 =
+        BFNConstants.Constants.TOPIC_INVOICES + mdata.supplier.split("#")[1];
+      const topic2 = BFNConstants.Constants.TOPIC_INVOICES;
       const payload = {
         data: {
           messageType: "INVOICE",
@@ -127,7 +126,8 @@ export const registerInvoice = functions.https.onRequest(
         }
       };
 
-      console.log("sending invoice data to topic: " + topic + " " + topic2);
+      console.log("sending invoice data to topics: " + topic + " " + topic2 + ' ' + topic1);
+      await admin.messaging().sendToTopic(topic1, payload);
       await admin.messaging().sendToTopic(topic2, payload);
       return await admin.messaging().sendToTopic(topic, payload);
     }
@@ -146,9 +146,7 @@ export const registerInvoice = functions.https.onRequest(
         },
         notification: {
           title: "Invoice Acceptance",
-          body:
-            "Invoice Acceptance from " +
-            mdata.customerName 
+          body: "Invoice Acceptance from " + mdata.customerName
         }
       };
 
@@ -181,14 +179,13 @@ export const registerInvoice = functions.https.onRequest(
           return await acceptInvoice(invoice);
         } else {
           console.log("Customer has no autoAccept - send 200 with invoice");
-          await sendMessageToTopic(invoice)
+          await sendMessageToTopic(invoice);
           return response.status(200).send(invoice);
-        
         }
       } else {
         const msg = "Customer record not found";
         console.log(msg);
-       throw new Error(msg)
+        throw new Error(msg);
       }
     }
     async function acceptInvoice(invoice) {
@@ -224,38 +221,29 @@ export const registerInvoice = functions.https.onRequest(
             .doc(invoice.supplierDocumentRef)
             .collection("invoiceAcceptances")
             .add(mresponse.data)
-            .catch(function(error) {
-              console.log(error);
-              handleError(error);
-            });
+            
           console.log(`Firestore document added: ${mRef.path}`);
+          const dRef = await admin
+            .firestore()
+            .collection("govtEntities")
+            .doc(invoice.govtDocumentRef)
+            .collection("invoiceAcceptances")
+            .add(mresponse.data);
+          console.log(`Firestore document added: ${dRef.path}`);
           await InvoiceUpdate.updateInvoice(mresponse.data);
-          await sendAcceptanceToTopic(mresponse.data)
+          await sendAcceptanceToTopic(mresponse.data);
           response.status(201).send(invoice);
           return null;
         } else {
           console.log(`** BFN ERROR ## status: ${mresponse.data}`);
-          handleError(mresponse);
+          throw new Error(mresponse);
         }
       } catch (error) {
         console.log(error);
-        handleError(error);
+        throw error;
       }
     }
 
-    function handleError(message) {
-      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          message: message,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send("RegisterInvoice failed");
-      }
-    }
+    
   }
 );

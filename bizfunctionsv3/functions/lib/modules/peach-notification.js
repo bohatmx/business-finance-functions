@@ -48,6 +48,7 @@ exports.peachNotify = functions.https.onRequest(async (request, response) => {
             else {
                 //THIS IS A SINGLE PAYMENT
                 const bid = docSnap.data();
+                bid.documentReference = docSnap.id;
                 await createSettlement(bid, bidDocumentId);
             }
         }
@@ -153,11 +154,15 @@ exports.peachNotify = functions.https.onRequest(async (request, response) => {
     }
     async function writeSettlementToFirestore(mdata, documentId) {
         try {
+            console.log(`writing settlement to Firestore for bid: ${documentId}`);
             mdata.intDate = new Date().getTime();
+            mdata.invoiceBidDocRef = documentId;
+            console.log(mdata);
             const setlmtRef = await fs.collection("settlements").add(mdata);
             mdata.documentReference = setlmtRef.id;
             await setlmtRef.set(mdata);
-            console.log(`settlement written to Firestore - ${mdata.amount} ${setlmtRef.path}`);
+            console.log(`settlement written to Firestore - ${mdata.amount} ${setlmtRef.path} - check invoiceBidDocRef`);
+            console.log(mdata);
             //update the bid to isSettled = true
             const qSnap = await fs
                 .collection("invoiceBids")

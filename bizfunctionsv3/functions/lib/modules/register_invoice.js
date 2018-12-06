@@ -63,12 +63,12 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             }
             else {
                 console.log("******** BFN ERROR ### status: " + mresponse.status);
-                handleError(mresponse.data);
+                throw new Error(mresponse.data);
             }
         }
         catch (error) {
             console.log(error);
-            handleError("RegisterInvoice failed");
+            throw error;
         }
     }
     async function writeToFirestore(mdata) {
@@ -99,12 +99,13 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         }
         catch (e) {
             console.log(e);
-            handleError(`RegisterInvoice failed: ${e}`);
+            throw new Error(`RegisterInvoice failed: ${e}`);
         }
     }
     async function sendMessageToTopic(mdata) {
         const topic = BFNConstants.Constants.TOPIC_INVOICES + mdata.govtEntity.split("#")[1];
-        const topic2 = BFNConstants.Constants.TOPIC_INVOICES + "admin";
+        const topic1 = BFNConstants.Constants.TOPIC_INVOICES + mdata.supplier.split("#")[1];
+        const topic2 = BFNConstants.Constants.TOPIC_INVOICES;
         const payload = {
             data: {
                 messageType: "INVOICE",
@@ -115,7 +116,8 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                 body: "Invoice from " + mdata.supplierName + " amount: " + mdata.amount
             }
         };
-        console.log("sending invoice data to topic: " + topic + " " + topic2);
+        console.log("sending invoice data to topics: " + topic + " " + topic2 + ' ' + topic1);
+        await admin.messaging().sendToTopic(topic1, payload);
         await admin.messaging().sendToTopic(topic2, payload);
         return await admin.messaging().sendToTopic(topic, payload);
     }
@@ -132,8 +134,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             },
             notification: {
                 title: "Invoice Acceptance",
-                body: "Invoice Acceptance from " +
-                    mdata.customerName
+                body: "Invoice Acceptance from " + mdata.customerName
             }
         };
         console.log("sending invoice acceptance to topic: " +
@@ -201,12 +202,15 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .collection("suppliers")
                     .doc(invoice.supplierDocumentRef)
                     .collection("invoiceAcceptances")
-                    .add(mresponse.data)
-                    .catch(function (error) {
-                    console.log(error);
-                    handleError(error);
-                });
+                    .add(mresponse.data);
                 console.log(`Firestore document added: ${mRef.path}`);
+                const dRef = await admin
+                    .firestore()
+                    .collection("govtEntities")
+                    .doc(invoice.govtDocumentRef)
+                    .collection("invoiceAcceptances")
+                    .add(mresponse.data);
+                console.log(`Firestore document added: ${dRef.path}`);
                 await InvoiceUpdate.updateInvoice(mresponse.data);
                 await sendAcceptanceToTopic(mresponse.data);
                 response.status(201).send(invoice);
@@ -214,27 +218,12 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             }
             else {
                 console.log(`** BFN ERROR ## status: ${mresponse.data}`);
-                handleError(mresponse);
+                throw new Error(mresponse);
             }
         }
         catch (error) {
             console.log(error);
-            handleError(error);
-        }
-    }
-    function handleError(message) {
-        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-        try {
-            const payload = {
-                message: message,
-                date: new Date().toISOString()
-            };
-            console.log(payload);
-            response.status(400).send(payload);
-        }
-        catch (e) {
-            console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send("RegisterInvoice failed");
+            throw error;
         }
     }
 });

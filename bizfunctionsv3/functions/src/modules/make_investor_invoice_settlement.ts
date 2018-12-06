@@ -62,6 +62,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
         data.date = new Date().toISOString();
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
+          mresponse.data.intDate = new Date().getTime();
           return writeSettlementToFirestore(mresponse.data);
         } else {
           console.log(`** BFN ERROR ## ${mresponse.data}`);
@@ -75,11 +76,10 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
     async function writeSettlementToFirestore(mdata) {
       try {
         mdata.intDate = new Date().getTime();
-        mdata.date = new Date().toISOString();
-
         const setlmtRef = await fs.collection("settlements").add(mdata);
         mdata.documentReference = setlmtRef.path.split("/")[1];
         await setlmtRef.set(mdata);
+
         //update the bid to isSettled = true
         const documentSnapshot = await fs
           .collection("invoiceBids")

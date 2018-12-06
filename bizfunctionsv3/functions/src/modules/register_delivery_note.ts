@@ -167,7 +167,10 @@ export const registerDeliveryNote = functions.https.onRequest(
       }
     }
     async function sendMessageToTopic(mdata) {
-      const topic = `deliveryNotes`;
+      const topic0 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES
+      const topic2 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES + mdata.supplier.split("#")[1];;
+      const topic1 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES + mdata.govtEntity.split("#")[1];;
+      
       const payload = {
         data: {
           messageType: "DELIVERY_NOTE",
@@ -179,8 +182,10 @@ export const registerDeliveryNote = functions.https.onRequest(
         }
       };
 
-      console.log("sending delivery note data to topic: " + topic);
-      return await admin.messaging().sendToTopic(topic, payload);
+      console.log("sending delivery note data to topic: " + topic0 + ' ' + topic1 + ' ' + topic2);
+      await admin.messaging().sendToTopic(topic0, payload);
+      await admin.messaging().sendToTopic(topic1, payload);
+      return await admin.messaging().sendToTopic(topic2, payload);
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);

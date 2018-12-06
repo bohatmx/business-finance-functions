@@ -144,12 +144,38 @@ exports.registerPurchaseOrder = functions.https.onRequest(async (request, respon
                 });
                 console.log(`*** Data successfully written to Firestore! ${ref2.path}`);
             }
+            await sendMessageToTopic(mdata);
             console.log("Purchase Order processed OK... done!");
-            response.send(mdata);
+            response.status(200).send(mdata);
         }
         catch (e) {
             console.log(e);
             handleError(e);
+        }
+    }
+    async function sendMessageToTopic(mdata) {
+        const topic1 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS + mdata.supplier.split("#")[1];
+        const topic2 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS + mdata.govtEntity.split("#")[1];
+        const topic3 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS;
+        const payload = {
+            data: {
+                messageType: "PURCHASE_ORDER",
+                json: JSON.stringify(mdata)
+            },
+            notification: {
+                title: "Purchase Order",
+                body: "Purchase Order amount: " + mdata.amount
+            }
+        };
+        try {
+            console.log("sending purchase order data to topics: " + topic1 + ' ' + topic2 + ' ' + topic3);
+            await admin.messaging().sendToTopic(topic1, payload);
+            await admin.messaging().sendToTopic(topic2, payload);
+            return await admin.messaging().sendToTopic(topic3, payload);
+        }
+        catch (e) {
+            console.error(e);
+            throw e;
         }
     }
     function handleError(message) {
