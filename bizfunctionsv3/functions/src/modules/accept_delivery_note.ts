@@ -157,12 +157,36 @@ export const acceptDeliveryNote = functions.https.onRequest(
             `*** Data successfully written to Firestore! ${ref2.path}`
           );
         }
+        await sendMessageToTopic(mdata);
         response.status(200).send(mdata);
         return ref1;
       } catch (e) {
         console.log(e);
         handleError(e);
       }
+    }
+
+     async function sendMessageToTopic(mdata) {
+      
+      const payload = {
+        data: {
+          messageType: "DELIVERY_ACCEPTANCE",
+          json: JSON.stringify(mdata)
+        },
+        notification: {
+          title: "Delivery Acceptance",
+          body:
+            "Delivery Acceptance from " + mdata.customerName + " amount: " + mdata.amount
+        }
+      };
+      
+      const topic = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES;
+      const topic2 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES + mdata.supplier.split('#')[1];
+      const topic3 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES + mdata.govtEntity.split('#')[1];
+      console.log("sending Delivery Acceptance data to topics: " + topic + " " + topic2 + " " + topic3);
+      await admin.messaging().sendToTopic(topic, payload);
+      await admin.messaging().sendToTopic(topic2, payload);
+      return await admin.messaging().sendToTopic(topic3, payload);
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);

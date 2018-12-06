@@ -100,7 +100,7 @@ export const registerInvoice = functions.https.onRequest(
           console.log(
             `*** Data written to Firestore suppliers/invoices ${ref3.path}`
           );
-
+          await sendMessageToTopic(mdata)
           await checkAutoAccept(mdata);
         }
       } catch (e) {
@@ -179,7 +179,6 @@ export const registerInvoice = functions.https.onRequest(
           return await acceptInvoice(invoice);
         } else {
           console.log("Customer has no autoAccept - send 200 with invoice");
-          await sendMessageToTopic(invoice);
           return response.status(200).send(invoice);
         }
       } else {

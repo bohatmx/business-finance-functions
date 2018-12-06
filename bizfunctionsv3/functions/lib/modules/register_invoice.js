@@ -16,7 +16,6 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
         const firestore = admin.firestore();
         const settings = { /* your settings... */ timestampsInSnapshots: true };
         firestore.settings(settings);
-        console.log("Firebase settings completed. Should be free of annoying messages from Google");
     }
     catch (e) {
         console.log(e);
@@ -94,6 +93,7 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
                     .collection("invoices")
                     .add(mdata);
                 console.log(`*** Data written to Firestore suppliers/invoices ${ref3.path}`);
+                await sendMessageToTopic(mdata);
                 await checkAutoAccept(mdata);
             }
         }
@@ -163,7 +163,6 @@ exports.registerInvoice = functions.https.onRequest(async (request, response) =>
             }
             else {
                 console.log("Customer has no autoAccept - send 200 with invoice");
-                await sendMessageToTopic(invoice);
                 return response.status(200).send(invoice);
             }
         }

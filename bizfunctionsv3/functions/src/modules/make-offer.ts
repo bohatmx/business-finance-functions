@@ -172,9 +172,11 @@ export const makeOffer = functions.https.onRequest(
       
       const topic = BFNConstants.Constants.TOPIC_OFFERS;
       const topic2 = BFNConstants.Constants.TOPIC_OFFERS + mdata.supplier.split('#')[1];
-      console.log("sending Offer data to topics: " + topic + " " + topic2);
+      const topic3 = BFNConstants.Constants.TOPIC_OFFERS + mdata.customer.split('#')[1];
+      console.log("sending Offer data to topics: " + topic + " " + topic2 + " " + topic3);
       await admin.messaging().sendToTopic(topic, payload);
-      return await admin.messaging().sendToTopic(topic2, payload);
+      await admin.messaging().sendToTopic(topic2, payload);
+      return await admin.messaging().sendToTopic(topic3, payload);
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
