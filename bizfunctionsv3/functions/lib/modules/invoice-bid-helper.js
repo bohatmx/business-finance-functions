@@ -15,6 +15,7 @@ class InvoiceBidHelper {
         else {
             url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
         }
+        const fs = admin.firestore();
         console.log(`InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`);
         const storeInvestorRef = data.investorDocRef;
         const storeOfferRef = data.offerDocRef;
@@ -22,7 +23,7 @@ class InvoiceBidHelper {
         const offerId = data.offer.split("#")[1];
         const offerDocRef = data.offerDocRef;
         let totalReserved = 0.0;
-        console.log(`InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef}`);
+        console.log(`InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef} storeSupplierRef: ${storeSupplierRef}`);
         data.investorDocRef = null;
         data.offerDocRef = null;
         data.supplierDocRef = null;
@@ -41,9 +42,6 @@ class InvoiceBidHelper {
             console.log(`InvoiceBidHelper: data direct to BFN: ${JSON.stringify(data)}`);
             const mresponse = await AxiosComms.AxiosComms.execute(url, data);
             if (mresponse.status === 200) {
-                mresponse.data.investorDocRef = storeInvestorRef;
-                mresponse.data.offerDocRef = offerDocRef;
-                mresponse.data.supplierDocRef = storeSupplierRef;
                 return writeToFirestore(mresponse.data);
             }
             else {
@@ -57,12 +55,30 @@ class InvoiceBidHelper {
         async function writeToFirestore(mdata) {
             try {
                 mdata.intDate = new Date().getTime();
-                mdata.date = new Date().toISOString();
-                console.log(`InvoiceBidHelper: data direct to Firestore: ${JSON.stringify(mdata)}`);
-                const ref = await admin
-                    .firestore()
-                    .collection("invoiceBids")
-                    .add(mdata);
+                if (storeInvestorRef) {
+                    mdata.investorDocRef = storeInvestorRef;
+                }
+                else {
+                    mdata.investorDocRef = "toBeFixed";
+                }
+                if (offerDocRef) {
+                    mdata.offerDocRef = offerDocRef;
+                }
+                else {
+                    mdata.offerDocRef = "toBeFixed";
+                }
+                if (storeSupplierRef) {
+                    mdata.supplierDocRef = storeSupplierRef;
+                }
+                else {
+                    mdata.supplierDocRef = "toBeFixed";
+                }
+                console.log(mdata);
+                console.log(`InvoiceBidHelper: adjusted response from BFN, check docRefs. investor, offer and supplier ???`);
+                console.log(`InvoiceBidHelper: bid data direct to Firestore: ${JSON.stringify(mdata)}`);
+                let ref;
+                ref = await fs.collection("invoiceBids").add(mdata);
+                console.log(`ref.path should NOT be null, but it is ${ref.path}`);
                 console.log(`Invoice bid written to Firestore. YAY!`);
                 mdata.documentReference = ref.path.split("/")[1];
                 await ref.set(mdata);
@@ -131,7 +147,8 @@ class InvoiceBidHelper {
                     total += mReserve;
                 });
                 const end1 = new Date().getTime();
-                console.log(`Finding invoiceBids for offer ${offerDocRef} - ${end1 - start} milliseconds elapsed. found: ${msnapshot.docs.length}`);
+                console.log(`Finding invoiceBids for offer ${offerDocRef} - ${end1 -
+                    start} milliseconds elapsed. found: ${msnapshot.docs.length}`);
                 totalReserved = total;
                 if (total >= 100.0) {
                     console.log(`######## closing offer, reservePercent == ${total} %`);

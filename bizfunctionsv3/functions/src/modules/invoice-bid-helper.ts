@@ -12,7 +12,7 @@ export class InvoiceBidHelper {
     } else {
       url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
     }
-
+    const fs = admin.firestore();
     console.log(
       `InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`
     );
@@ -23,7 +23,7 @@ export class InvoiceBidHelper {
     const offerDocRef = data.offerDocRef;
     let totalReserved = 0.0;
     console.log(
-      `InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef}`
+      `InvoiceBidHelper: storeOfferRef: ${storeOfferRef} storeInvestorRef: ${storeInvestorRef} storeSupplierRef: ${storeSupplierRef}`
     );
     data.investorDocRef = null;
     data.offerDocRef = null;
@@ -47,10 +47,6 @@ export class InvoiceBidHelper {
       );
       const mresponse = await AxiosComms.AxiosComms.execute(url, data);
       if (mresponse.status === 200) {
-        mresponse.data.investorDocRef = storeInvestorRef;
-        mresponse.data.offerDocRef = offerDocRef;
-        mresponse.data.supplierDocRef = storeSupplierRef;
-
         return writeToFirestore(mresponse.data);
       } else {
         console.log(`** BFN ERROR ## ${mresponse.data}`);
@@ -63,23 +59,43 @@ export class InvoiceBidHelper {
     async function writeToFirestore(mdata) {
       try {
         mdata.intDate = new Date().getTime();
-        mdata.date = new Date().toISOString();
+        if (storeInvestorRef) {
+          mdata.investorDocRef = storeInvestorRef;
+        } else {
+          mdata.investorDocRef = "toBeFixed";
+        }
+        if (offerDocRef) {
+          mdata.offerDocRef = offerDocRef;
+        } else {
+          mdata.offerDocRef = "toBeFixed";
+        }
+        if (storeSupplierRef) {
+          mdata.supplierDocRef = storeSupplierRef;
+        } else {
+          mdata.supplierDocRef = "toBeFixed";
+        }
+        console.log(mdata);
         console.log(
-          `InvoiceBidHelper: data direct to Firestore: ${JSON.stringify(mdata)}`
+          `InvoiceBidHelper: adjusted response from BFN, check docRefs. investor, offer and supplier ???`
         );
+        console.log(
+          `InvoiceBidHelper: bid data direct to Firestore: ${JSON.stringify(
+            mdata
+          )}`
+        );
+        let ref;
+        ref = await fs.collection("invoiceBids").add(mdata);
 
-        const ref = await admin
-          .firestore()
-          .collection("invoiceBids")
-          .add(mdata);
-
+        console.log(`ref.path should NOT be null, but it is ${ref.path}`);
         console.log(`Invoice bid written to Firestore. YAY!`);
         mdata.documentReference = ref.path.split("/")[1];
         await ref.set(mdata);
         console.log(`Invoice bid updated with docRef`);
 
         if (mdata.reservePercent === 100.0) {
-          console.log(`######## closing offer, individual reservePercent == 100 %`);
+          console.log(
+            `######## closing offer, individual reservePercent == 100 %`
+          );
           await CloseHelper.writeCloseOfferToBFN(
             offerId,
             mdata.offerDocRef,
@@ -87,9 +103,11 @@ export class InvoiceBidHelper {
           );
         } else {
           if (mdata.reservePercent + totalReserved === 100.0) {
-            console.log(`######## closing offer, combined reservePercent == 100 %`);
+            console.log(
+              `######## closing offer, combined reservePercent == 100 %`
+            );
             await CloseHelper.writeCloseOfferToBFN(offerId, offerDocRef, debug);
-          } 
+          }
         }
 
         await sendMessageToTopic(mdata);
@@ -140,7 +158,7 @@ export class InvoiceBidHelper {
       console.log(
         `############ checkTotalBids ......... offerDocID: ${offerDocRef}`
       );
-      const start = new Date().getTime()
+      const start = new Date().getTime();
       let total: number = 0.0;
       try {
         const msnapshot = await admin
@@ -153,8 +171,11 @@ export class InvoiceBidHelper {
           const mReserve = parseFloat(reservePercent);
           total += mReserve;
         });
-        const end1 = new Date().getTime()
-        console.log(`Finding invoiceBids for offer ${offerDocRef} - ${end1 - start} milliseconds elapsed. found: ${msnapshot.docs.length}`)
+        const end1 = new Date().getTime();
+        console.log(
+          `Finding invoiceBids for offer ${offerDocRef} - ${end1 -
+            start} milliseconds elapsed. found: ${msnapshot.docs.length}`
+        );
         totalReserved = total;
         if (total >= 100.0) {
           console.log(`######## closing offer, reservePercent == ${total} %`);

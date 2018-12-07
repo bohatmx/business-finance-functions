@@ -156,6 +156,7 @@ export const executeAutoTrades = functions
           startTime: new Date().toISOString(),
           endTime: mdate.toISOString()
         };
+        console.log(unit.offer)
         console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
         if (!bid.offerDocRef) {
           console.log('####### SOS SOS abandoning ship! offerDocRef is null')
