@@ -33,7 +33,7 @@ export const acceptInvoice = functions.https.onRequest(
 
     const debug = request.body.debug;
     const data = request.body.data;
-
+    const fs = admin.firestore()
     const apiSuffix = "AcceptInvoice";
 
     if (validate()) {
@@ -88,8 +88,7 @@ export const acceptInvoice = functions.https.onRequest(
         let mdocID;
         if (!mdata.govtDocumentRef) {
           const key = mdata.govtEntity.split("#")[1];
-          const snapshot = await admin
-            .firestore()
+          const snapshot = await fs
             .collection("govtEntities")
             .where("participantId", "==", key)
             .get()
@@ -106,8 +105,7 @@ export const acceptInvoice = functions.https.onRequest(
         }
         let ref1;
         if (mdocID) {
-          ref1 = await admin
-            .firestore()
+          ref1 = await fs
             .collection("govtEntities")
             .doc(mdocID)
             .collection("invoiceAcceptances")
@@ -124,8 +122,7 @@ export const acceptInvoice = functions.https.onRequest(
         let docID;
         if (!mdata.supplierDocumentRef) {
           const key = mdata.supplier.split("#")[1];
-          const snapshot = await admin
-            .firestore()
+          const snapshot = await fs
             .collection("suppliers")
             .where("participantId", "==", key)
             .get()
@@ -141,8 +138,7 @@ export const acceptInvoice = functions.https.onRequest(
           docID = mdata.supplierDocumentRef;
         }
         if (docID) {
-          const ref2 = await admin
-            .firestore()
+          const ref2 = await fs
             .collection("suppliers")
             .doc(docID)
             .collection("invoiceAcceptances")
@@ -158,29 +154,58 @@ export const acceptInvoice = functions.https.onRequest(
         }
         console.log("Invoice accepted OK. Ciao!");
         await InvoiceUpdate.updateInvoice(mdata)
+        await sendMessageToTopic(mdata)
         response.status(200).send(mdata);
       } catch (e) {
         console.log(e);
         handleError(e);
       }
     }
+    async function sendMessageToTopic(mdata) {
+      const topic = BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES;
+      const topic2 =
+        BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES +
+        mdata.supplier.split("#")[1];
+      const topic3 =
+        BFNConstants.Constants.TOPIC_INVOICE_ACCEPTANCES +
+        mdata.govtEntity.split("#")[1];
+      const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic3}' in topics`;
+
+      console.log(
+        "sending Invoice Acceptance data to topics: " +
+          topic +
+          " " +
+          topic2 +
+          " " +
+          topic3
+      );
+      const payload = {
+        data: {
+          messageType: "INVOICE_ACCEPTANCE",
+          json: JSON.stringify(mdata)
+        },
+        notification: {
+          title: "Invoice Acceptance",
+          body:
+            "Invoice Acceptance from " +
+            mdata.customerName +
+            " amount: " +
+            mdata.amount
+        },
+        condition: mCondition
+      };
+      try {
+        await admin.messaging().send(payload);
+      } catch (e) {
+        console.error(e);
+      }
+      return null;
+    }
 
 
     function handleError(message) {
-      console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          name: apiSuffix,
-          message: message,
-          data: request.body.data,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send(message);
-      }
+      console.error("--- ERROR !!! --- sending error payload: msg:" + message);
+      throw new Error(message)
     }
   }
 );

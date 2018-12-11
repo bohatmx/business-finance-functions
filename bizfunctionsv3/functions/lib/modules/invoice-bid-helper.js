@@ -108,6 +108,7 @@ class InvoiceBidHelper {
             const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS +
                 mdata.investor.split("#")[1];
             const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
+            const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
             const payload = {
                 data: {
                     messageType: "INVOICE_BID",
@@ -119,7 +120,8 @@ class InvoiceBidHelper {
                         mdata.investorName +
                         " amount: " +
                         mdata.amount
-                }
+                },
+                condition: mCondition
             };
             console.log("sending invoice bid data to topics: " +
                 topic +
@@ -127,9 +129,13 @@ class InvoiceBidHelper {
                 topic1 +
                 " " +
                 topic2);
-            await admin.messaging().sendToTopic(topic, payload);
-            await admin.messaging().sendToTopic(topic1, payload);
-            return await admin.messaging().sendToTopic(topic2, payload);
+            try {
+                await admin.messaging().send(payload);
+            }
+            catch (e) {
+                console.error(e);
+            }
+            return null;
         }
         async function checkTotalBids() {
             console.log(`############ checkTotalBids ......... offerDocID: ${offerDocRef}`);
@@ -162,7 +168,7 @@ class InvoiceBidHelper {
             }
             catch (e) {
                 console.log("-- Firestore: Check Totals PROBLEM -----");
-                console.log(e);
+                console.error(e);
                 throw e;
             }
         }

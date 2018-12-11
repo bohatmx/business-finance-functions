@@ -93,7 +93,8 @@ export const addData = functions
       mdata.intDate = new Date().getTime()
       mdata.date = new Date().toISOString()
       try {
-        const reference = await admin
+        let reference;
+         reference = await admin
           .firestore()
           .collection(collectionName)
           .add(mdata)
@@ -105,7 +106,9 @@ export const addData = functions
         console.log(
           `********** Data successfully written to Firestore! ${reference}`
         );
-
+        mdata.documentReference = reference.path.split('#')(1);
+        await reference.set(mdata);
+        console.log('DocumentReference updated: ', mdata.documentReference)
         return reference;
       } catch (e) {
         console.log(e);

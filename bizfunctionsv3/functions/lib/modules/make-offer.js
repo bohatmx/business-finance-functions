@@ -26,6 +26,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
+    const fs = admin.firestore();
     const apiSuffix = "MakeOffer";
     if (validate()) {
         await writeToBFN();
@@ -77,8 +78,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         mdata.date = new Date().toISOString();
         try {
             let ref1;
-            ref1 = await admin
-                .firestore()
+            ref1 = await fs
                 .collection("invoiceOffers")
                 .add(mdata)
                 .catch(function (error) {
@@ -86,8 +86,8 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
                 handleError(error);
             });
             console.log(`** Data written to Firestore! ${ref1.path}`);
-            //update documentReference 
-            mdata.documentReference = ref1.path.split('/')[1];
+            //update documentReference
+            mdata.documentReference = ref1.path.split("/")[1];
             await ref1.set(mdata);
             await sendMessageToTopic(mdata);
             await updateInvoice(mdata);
@@ -103,8 +103,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         console.log("## update invoice isOnOffer will be set to true ....on Firestore!!");
         let querySnapshot;
         let invoice;
-        querySnapshot = await admin
-            .firestore()
+        querySnapshot = await fs
             .collection("suppliers")
             .doc(offer.supplierDocumentRef)
             .collection("invoices")
@@ -121,8 +120,7 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
         //
         let querySnapshot2;
-        querySnapshot2 = await admin
-            .firestore()
+        querySnapshot2 = await fs
             .collection("govtEntities")
             .where("participantId", "==", invoice.govtEntity.split("#")[1])
             .get();
@@ -145,40 +143,37 @@ exports.makeOffer = functions.https.onRequest(async (request, response) => {
         }
     }
     async function sendMessageToTopic(mdata) {
-        const payload = {
-            data: {
-                messageType: "OFFER",
-                json: JSON.stringify(mdata)
-            },
-            notification: {
-                title: "BFN Offer",
-                body: "Offer from " + mdata.supplierName + " amount: " + mdata.offerAmount
-            }
-        };
-        const topic = BFNConstants.Constants.TOPIC_OFFERS;
-        const topic2 = BFNConstants.Constants.TOPIC_OFFERS + mdata.supplier.split('#')[1];
-        const topic3 = BFNConstants.Constants.TOPIC_OFFERS + mdata.customer.split('#')[1];
-        console.log("sending Offer data to topics: " + topic + " " + topic2 + " " + topic3);
-        await admin.messaging().sendToTopic(topic, payload);
-        await admin.messaging().sendToTopic(topic2, payload);
-        return await admin.messaging().sendToTopic(topic3, payload);
+        try {
+            const topic = BFNConstants.Constants.TOPIC_OFFERS;
+            const topic2 = BFNConstants.Constants.TOPIC_OFFERS + mdata.supplier.split("#")[1];
+            const topic3 = BFNConstants.Constants.TOPIC_OFFERS + mdata.customer.split("#")[1];
+            const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic3}' in topics`;
+            console.log(`sending Offer data to topics, mCondition: ${mCondition}`);
+            const payload = {
+                data: {
+                    messageType: "OFFER",
+                    json: JSON.stringify(mdata)
+                },
+                notification: {
+                    title: "BFN Offer",
+                    body: "Offer from " +
+                        mdata.supplierName +
+                        " amount: " +
+                        mdata.offerAmount
+                },
+                condition: mCondition
+            };
+            admin.messaging().send(payload);
+        }
+        catch (e) {
+            console.error(e);
+            handleError(e);
+        }
+        return null;
     }
     function handleError(message) {
         console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-        try {
-            const payload = {
-                name: apiSuffix,
-                message: message,
-                data: request.body.data,
-                date: new Date().toISOString()
-            };
-            console.log(payload);
-            response.status(400).send(payload);
-        }
-        catch (e) {
-            console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send(message);
-        }
+        throw new Error(message);
     }
 });
 //# sourceMappingURL=make-offer.js.map

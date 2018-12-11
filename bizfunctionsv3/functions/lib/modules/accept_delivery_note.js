@@ -26,6 +26,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
     const debug = request.body.debug;
     const data = request.body.data;
+    const fs = admin.firestore();
     const apiSuffix = "AcceptDelivery";
     if (validate() === true) {
         await writeToBFN();
@@ -76,8 +77,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             let mdocID;
             if (!mdata.govtDocumentRef) {
                 const key = mdata.govtEntity.split("#")[1];
-                const snapshot = await admin
-                    .firestore()
+                const snapshot = await fs
                     .collection("govtEntities")
                     .where("participantId", "==", key)
                     .get()
@@ -95,8 +95,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             }
             let ref1;
             if (mdocID) {
-                ref1 = await admin
-                    .firestore()
+                ref1 = await fs
                     .collection("govtEntities")
                     .doc(mdocID)
                     .collection("deliveryAcceptances")
@@ -112,8 +111,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             if (!mdata.supplierDocumentRef) {
                 const key = mdata.supplier.split("#")[1];
                 let snapshot;
-                snapshot = await admin
-                    .firestore()
+                snapshot = await fs
                     .collection("suppliers")
                     .where("participantId", "==", key)
                     .get()
@@ -131,8 +129,7 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             }
             if (docID) {
                 let ref2;
-                ref2 = await admin
-                    .firestore()
+                ref2 = await fs
                     .collection("suppliers")
                     .doc(docID)
                     .collection("deliveryAcceptances")
@@ -154,6 +151,18 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
         }
     }
     async function sendMessageToTopic(mdata) {
+        const topic = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES;
+        const topic2 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES +
+            mdata.supplier.split("#")[1];
+        const topic3 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES +
+            mdata.govtEntity.split("#")[1];
+        const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic3}' in topics`;
+        console.log("sending Delivery Acceptance data to topics: " +
+            topic +
+            " " +
+            topic2 +
+            " " +
+            topic3);
         const payload = {
             data: {
                 messageType: "DELIVERY_ACCEPTANCE",
@@ -161,33 +170,24 @@ exports.acceptDeliveryNote = functions.https.onRequest(async (request, response)
             },
             notification: {
                 title: "Delivery Acceptance",
-                body: "Delivery Acceptance from " + mdata.customerName + " amount: " + mdata.amount
-            }
+                body: "Delivery Acceptance from " +
+                    mdata.customerName +
+                    " amount: " +
+                    mdata.amount
+            },
+            condition: mCondition
         };
-        const topic = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES;
-        const topic2 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES + mdata.supplier.split('#')[1];
-        const topic3 = BFNConstants.Constants.TOPIC_DELIVERY_ACCEPTANCES + mdata.govtEntity.split('#')[1];
-        console.log("sending Delivery Acceptance data to topics: " + topic + " " + topic2 + " " + topic3);
-        await admin.messaging().sendToTopic(topic, payload);
-        await admin.messaging().sendToTopic(topic2, payload);
-        return await admin.messaging().sendToTopic(topic3, payload);
-    }
-    function handleError(message) {
-        console.log("--- ERROR !!! --- sending error payload: msg:" + message);
         try {
-            const payload = {
-                name: apiSuffix,
-                message: message,
-                data: request.body.data,
-                date: new Date().toISOString()
-            };
-            console.log(payload);
-            response.status(400).send(payload);
+            await admin.messaging().send(payload);
         }
         catch (e) {
-            console.log("possible error propagation/cascade here. ignored");
-            response.status(400).send(message);
+            console.error(e);
         }
+        return null;
+    }
+    function handleError(message) {
+        console.error("--- ERROR !!! --- sending error payload: msg:" + message);
+        throw new Error(message);
     }
 });
 //# sourceMappingURL=accept_delivery_note.js.map
