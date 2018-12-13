@@ -9,24 +9,12 @@ const Data = require("../models/data");
 const Matcher = require("./matcher");
 const invoice_bid_helper_1 = require("./invoice-bid-helper");
 const uuid = require("uuid/v1");
+const cors = require("cors")({ origin: true });
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
     .runWith({ memory: "512MB", timeoutSeconds: 540 })
-    .https.onRequest(async (request, response) => {
-    try {
-        const firestore = admin.firestore();
-        const settings = { /* your settings... */ timestampsInSnapshots: true };
-        firestore.settings(settings);
-        console.log("Firebase settings completed. Should be free of annoying messages from Google :) :)");
-    }
-    catch (e) {
-    }
-    if (!request.body) {
-        console.log("ERROR - request has no body");
-        return response.status(500).send("Request has no body");
-    }
-    console.log(`##### Incoming debug ${request.body.debug}`);
-    const debug = request.body.debug;
+    .https.onRequest(async (req, res) => {
+    const debug = req.body.debug;
     let orders = [];
     let profiles = [];
     let offers = [];
@@ -44,9 +32,24 @@ exports.executeAutoTrades = functions
     };
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
-    await sendMessageToHeartbeatTopic(`AutoTrade Session started: ${new Date().toISOString()}`);
-    await startAutoTradeSession();
-    return null;
+    //enable CORS 
+    cors(req, res, async (request, response) => {
+        console.log("######## wrapped everything in cors");
+        if (!request.body) {
+            console.log("ERROR - request has no body");
+            return response.status(500).send("Request has no body");
+        }
+        try {
+            const firestore = admin.firestore();
+            const settings = { /* your settings... */ timestampsInSnapshots: true };
+            firestore.settings(settings);
+        }
+        catch (e) { }
+        console.log(`##### Incoming data ${request.body}`);
+        await sendMessageToHeartbeatTopic(`AutoTrade Session started: ${new Date().toISOString()}`);
+        await startAutoTradeSession();
+        return null;
+    });
     async function startAutoTradeSession() {
         const date = new Date().toISOString();
         console.log(`### starting AutoTrade Session ########### ${date}`);
@@ -71,7 +74,7 @@ exports.executeAutoTrades = functions
         console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${autoTradeStart.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
         await sendMessageToHeartbeatTopic(`AutoTrade Session complete, elapsed: ${autoTradeStart.elapsedSeconds} seconds`);
-        return response.status(200).send(autoTradeStart);
+        return res.status(200).send(autoTradeStart);
     }
     async function writeBids() {
         for (const unit of units) {
@@ -136,7 +139,7 @@ exports.executeAutoTrades = functions
             console.log(unit.offer);
             console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
             if (!bid.offerDocRef) {
-                console.log('####### SOS SOS abandoning ship! offerDocRef is null');
+                console.log("####### SOS SOS abandoning ship! offerDocRef is null");
                 throw new Error(`Houston, stubborn error - offerDocRef is always NULL: ${bid.offerDocRef}`);
             }
             await invoice_bid_helper_1.InvoiceBidHelper.writeInvoiceBidToBFNandFirestore(bid, debug);
@@ -290,7 +293,7 @@ exports.executeAutoTrades = functions
     async function updateAutoTradeStart() {
         autoTradeStart.dateEnded = new Date().toISOString();
         let t = 0.0;
-        units.forEach((u) => {
+        units.forEach(u => {
             t += u.offer.offerAmount;
         });
         autoTradeStart.totalAmount = t;

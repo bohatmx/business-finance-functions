@@ -8,28 +8,13 @@ import * as Data from "../models/data";
 import * as Matcher from "./matcher";
 import { InvoiceBidHelper } from "./invoice-bid-helper";
 const uuid = require("uuid/v1");
+const cors = require("cors")({ origin: true });
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 
 export const executeAutoTrades = functions
   .runWith({ memory: "512MB", timeoutSeconds: 540 })
-  .https.onRequest(async (request, response) => {
-    try {
-      const firestore = admin.firestore();
-      const settings = { /* your settings... */ timestampsInSnapshots: true };
-      firestore.settings(settings);
-      console.log(
-        "Firebase settings completed. Should be free of annoying messages from Google :) :)"
-      );
-    } catch (e) {
-    }
-
-    if (!request.body) {
-      console.log("ERROR - request has no body");
-      return response.status(500).send("Request has no body");
-    }
-    console.log(`##### Incoming debug ${request.body.debug}`);
-    const debug = request.body.debug;
-
+  .https.onRequest(async (req, res) => {
+    const debug = req.body.debug;
     let orders: Data.AutoTradeOrder[] = [];
     let profiles: Data.InvestorProfile[] = [];
     let offers: Data.Offer[] = [];
@@ -45,15 +30,27 @@ export const executeAutoTrades = functions
       dateStarted: new Date().toISOString(),
       dateEnded: null
     };
-
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
-
-    await sendMessageToHeartbeatTopic(
-      `AutoTrade Session started: ${new Date().toISOString()}`
-    );
-    await startAutoTradeSession();
-    return null;
+    //enable CORS 
+    cors(req, res, async (request, response) => {
+      console.log("######## wrapped everything in cors");
+      if (!request.body) {
+        console.log("ERROR - request has no body");
+        return response.status(500).send("Request has no body");
+      }
+      try {
+        const firestore = admin.firestore();
+        const settings = { /* your settings... */ timestampsInSnapshots: true };
+        firestore.settings(settings);
+      } catch (e) {}
+      console.log(`##### Incoming data ${request.body}`);
+      await sendMessageToHeartbeatTopic(
+        `AutoTrade Session started: ${new Date().toISOString()}`
+      );
+      await startAutoTradeSession();
+      return null;
+    });
 
     async function startAutoTradeSession() {
       const date = new Date().toISOString();
@@ -76,15 +73,17 @@ export const executeAutoTrades = functions
     async function finishAutoTrades() {
       const now: number = new Date().getTime();
       const elapsed = (now - startTime) / 1000;
-      autoTradeStart.elapsedSeconds = elapsed;      
+      autoTradeStart.elapsedSeconds = elapsed;
       await updateAutoTradeStart();
 
       console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${autoTradeStart.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
       await sendMessageToHeartbeatTopic(
-        `AutoTrade Session complete, elapsed: ${autoTradeStart.elapsedSeconds} seconds`
+        `AutoTrade Session complete, elapsed: ${
+          autoTradeStart.elapsedSeconds
+        } seconds`
       );
-      return response.status(200).send(autoTradeStart);
+      return res.status(200).send(autoTradeStart);
     }
     async function writeBids() {
       for (const unit of units) {
@@ -98,9 +97,9 @@ export const executeAutoTrades = functions
     async function writeBidToBFN(unit) {
       if (!unit.offer.documentReference) {
         console.log(`Offer has no documentReference. Bailing out!`);
-        throw new Error(`Offer has no documentReference. Bailing out!`)
+        throw new Error(`Offer has no documentReference. Bailing out!`);
       }
-      console.log(`offer document ref: ${unit.offer.documentReference}`)
+      console.log(`offer document ref: ${unit.offer.documentReference}`);
       try {
         //get existing invoice bids for this offer
         const bidQuerySnap = await admin
@@ -156,14 +155,18 @@ export const executeAutoTrades = functions
           startTime: new Date().toISOString(),
           endTime: mdate.toISOString()
         };
-        console.log(unit.offer)
+        console.log(unit.offer);
         console.log(`++++ bid to be written to BFN: ${JSON.stringify(bid)}`);
         if (!bid.offerDocRef) {
-          console.log('####### SOS SOS abandoning ship! offerDocRef is null')
-          throw new Error(`Houston, stubborn error - offerDocRef is always NULL: ${bid.offerDocRef}`)
+          console.log("####### SOS SOS abandoning ship! offerDocRef is null");
+          throw new Error(
+            `Houston, stubborn error - offerDocRef is always NULL: ${
+              bid.offerDocRef
+            }`
+          );
         }
         await InvoiceBidHelper.writeInvoiceBidToBFNandFirestore(bid, debug);
-        autoTradeStart.totalValidBids++
+        autoTradeStart.totalValidBids++;
       } catch (e) {
         console.log(e);
         throw e;
@@ -341,10 +344,10 @@ export const executeAutoTrades = functions
     }
     async function updateAutoTradeStart() {
       autoTradeStart.dateEnded = new Date().toISOString();
-      let t = 0.0
-      units.forEach((u) => {
-        t += u.offer.offerAmount
-      })
+      let t = 0.0;
+      units.forEach(u => {
+        t += u.offer.offerAmount;
+      });
       autoTradeStart.totalAmount = t;
       let mf;
       mf = await admin
@@ -381,5 +384,4 @@ export const executeAutoTrades = functions
       console.log("sending heartbeat to topic: " + mTopic);
       return await admin.messaging().sendToTopic(mTopic, payload);
     }
-
   });

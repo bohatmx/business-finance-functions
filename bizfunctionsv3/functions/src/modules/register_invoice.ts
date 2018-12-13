@@ -13,11 +13,10 @@ export const registerInvoice = functions.https.onRequest(
   async (request, response) => {
     console.log(`##### Incoming debug ${request.body.debug}`);
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
-
+    const fs = admin.firestore()
     try {
-      const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
-      firestore.settings(settings);
+      fs.settings(settings);
     } catch (e) {
       console.log(e);
     }
@@ -78,8 +77,7 @@ export const registerInvoice = functions.https.onRequest(
         const mdocID = mdata.govtDocumentRef;
 
         let ref1;
-        ref1 = await admin
-          .firestore()
+        ref1 = await fs
           .collection("govtEntities")
           .doc(mdocID)
           .collection("invoices")
@@ -90,8 +88,7 @@ export const registerInvoice = functions.https.onRequest(
         const docID = mdata.supplierDocumentRef;
         let ref3;
         if (docID) {
-          ref3 = await admin
-            .firestore()
+          ref3 = await fs
             .collection("suppliers")
             .doc(docID)
             .collection("invoices")
@@ -114,6 +111,8 @@ export const registerInvoice = functions.https.onRequest(
       const topic1 =
         BFNConstants.Constants.TOPIC_INVOICES + mdata.supplier.split("#")[1];
       const topic2 = BFNConstants.Constants.TOPIC_INVOICES;
+      const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
+
       const payload = {
         data: {
           messageType: "INVOICE",
@@ -123,13 +122,13 @@ export const registerInvoice = functions.https.onRequest(
           title: "Invoice",
           body:
             "Invoice from " + mdata.supplierName + " amount: " + mdata.amount
-        }
+        },
+        condition: mCondition
       };
 
       console.log("sending invoice data to topics: " + topic + " " + topic2 + ' ' + topic1);
-      await admin.messaging().sendToTopic(topic1, payload);
-      await admin.messaging().sendToTopic(topic2, payload);
-      return await admin.messaging().sendToTopic(topic, payload);
+      await admin.messaging().send(payload)
+      return null;
     }
     async function sendAcceptanceToTopic(mdata) {
       const topic =

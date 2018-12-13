@@ -14,12 +14,11 @@ export const registerDeliveryNote = functions.https.onRequest(
       console.log("ERROR - request has no body");
       return response.status(400).send("request has no body");
     }
- 
-    
+
+    const fs = admin.firestore();
     try {
-      const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
-      firestore.settings(settings);
+      fs.settings(settings);
       console.log(
         "Firebase settings completed. Should be free of annoying messages from Google"
       );
@@ -66,7 +65,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         data["deliveryNoteId"] = uuid();
       }
       try {
-        data.date = new Date().toISOString()
+        data.date = new Date().toISOString();
         const mresponse = await AxiosComms.AxiosComms.execute(url, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
@@ -90,8 +89,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         if (!mdata.govtDocumentRef) {
           const key = mdata.govtEntity.split("#")[1];
           let snapshot;
-          snapshot = await admin
-            .firestore()
+          snapshot = await fs
             .collection("govtEntities")
             .where("participantId", "==", key)
             .get()
@@ -107,8 +105,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         }
         let ref1;
         if (mdocID) {
-          ref1 = await admin
-            .firestore()
+          ref1 = await fs
             .collection("govtEntities")
             .doc(mdocID)
             .collection("deliveryNotes")
@@ -126,8 +123,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         if (!mdata.supplierDocumentRef) {
           const key = mdata.supplier.split("#")[1];
           let snapshot;
-          snapshot = await admin
-            .firestore()
+          snapshot = await fs
             .collection("suppliers")
             .where("participantId", "==", key)
             .get()
@@ -143,8 +139,7 @@ export const registerDeliveryNote = functions.https.onRequest(
         }
         if (docID) {
           let ref2;
-          ref2 = await admin
-            .firestore()
+          ref2 = await fs
             .collection("suppliers")
             .doc(docID)
             .collection("deliveryNotes")
@@ -167,10 +162,15 @@ export const registerDeliveryNote = functions.https.onRequest(
       }
     }
     async function sendMessageToTopic(mdata) {
-      const topic0 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES
-      const topic2 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES + mdata.supplier.split("#")[1];;
-      const topic1 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES + mdata.govtEntity.split("#")[1];;
-      
+      const topic0 = BFNConstants.Constants.TOPIC_DELIVERY_NOTES;
+      const topic2 =
+        BFNConstants.Constants.TOPIC_DELIVERY_NOTES +
+        mdata.supplier.split("#")[1];
+      const topic1 =
+        BFNConstants.Constants.TOPIC_DELIVERY_NOTES +
+        mdata.govtEntity.split("#")[1];
+      const mCondition = `'${topic0}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
+
       const payload = {
         data: {
           messageType: "DELIVERY_NOTE",
@@ -179,29 +179,22 @@ export const registerDeliveryNote = functions.https.onRequest(
         notification: {
           title: "Delivery Note",
           body: "Delivery Note from " + mdata.supplierName
-        }
+        },
+        condition: mCondition
       };
 
-      console.log("sending delivery note data to topic: " + topic0 + ' ' + topic1 + ' ' + topic2);
-      await admin.messaging().sendToTopic(topic0, payload);
-      await admin.messaging().sendToTopic(topic1, payload);
-      return await admin.messaging().sendToTopic(topic2, payload);
+      console.log(
+        "sending delivery note data to topic: " + mCondition );
+      try {
+        await admin.messaging().send(payload);
+      } catch (e) {
+        console.error(e);
+      }
+      return null;
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          name: apiSuffix,
-          message: message,
-          data: request.body.data,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send(message);
-      }
+     throw new Error(message)
     }
   }
 );

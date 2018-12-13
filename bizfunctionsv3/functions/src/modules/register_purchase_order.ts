@@ -15,10 +15,10 @@ export const registerPurchaseOrder = functions.https.onRequest(
       return response.status(400).send("request has no body");
     }
 
+    const fs = admin.firestore()
     try {
-      const firestore = admin.firestore();
       const settings = { /* your settings... */ timestampsInSnapshots: true };
-      firestore.settings(settings);
+      fs.settings(settings);
       console.log(
         "Firebase settings completed. Should be free of annoying messages from Google"
       );
@@ -86,8 +86,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         let mdocID;
         if (!mdata.govtDocumentRef) {
           const key = mdata.govtEntity.split("#")[1];
-          const snapshot = await admin
-            .firestore()
+          const snapshot = await fs
             .collection("govtEntities")
             .where("participantId", "==", key)
             .get()
@@ -104,8 +103,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         }
         let ref1;
         if (mdocID) {
-          ref1 = await admin
-            .firestore()
+          ref1 = await fs
             .collection("govtEntities")
             .doc(mdata.govtDocumentRef)
             .collection("purchaseOrders")
@@ -122,8 +120,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
         let docID;
         if (!mdata.supplierDocumentRef) {
           const key = mdata.supplier.split("#")[1];
-          const snapshot = await admin
-            .firestore()
+          const snapshot = await fs
             .collection("suppliers")
             .where("participantId", "==", key)
             .get()
@@ -139,8 +136,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
           docID = mdata.supplierDocumentRef;
         }
         if (docID) {
-          const ref2 = await admin
-            .firestore()
+          const ref2 = await fs
             .collection("suppliers")
             .doc(docID)
             .collection("purchaseOrders")
@@ -166,6 +162,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
       const topic1 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS + mdata.supplier.split("#")[1];
       const topic2 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS + mdata.govtEntity.split("#")[1];
       const topic3 = BFNConstants.Constants.TOPIC_PURCHASE_ORDERS;
+      const mCondition = `'${topic3}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
 
       const payload = {
         data: {
@@ -175,15 +172,14 @@ export const registerPurchaseOrder = functions.https.onRequest(
         notification: {
           title: "Purchase Order",
           body: "Purchase Order amount: " + mdata.amount
-        }
+        },
+        condition: mCondition
       };
 
       try {
-      
         console.log("sending purchase order data to topics: " + topic1 + ' ' + topic2 + ' ' + topic3);
-        await admin.messaging().sendToTopic(topic1, payload);
-        await admin.messaging().sendToTopic(topic2, payload);
-        return await admin.messaging().sendToTopic(topic3, payload);
+        await admin.messaging().send(payload)
+        return null
       } catch (e) {
         console.error(e);
         throw e;
@@ -191,19 +187,7 @@ export const registerPurchaseOrder = functions.https.onRequest(
     }
     function handleError(message) {
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
-      try {
-        const payload = {
-          name: "MakeInvoiceBid",
-          message: message,
-          data: request.body.data,
-          date: new Date().toISOString()
-        };
-        console.log(payload);
-        response.status(400).send(payload);
-      } catch (e) {
-        console.log("possible error propagation/cascade here. ignored");
-        response.status(400).send("Register PO failed");
-      }
+      throw new Error(message)
     }
   }
 );
