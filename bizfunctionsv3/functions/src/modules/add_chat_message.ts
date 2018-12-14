@@ -43,7 +43,7 @@ export const addChatMessage = functions.https.onRequest(
         console.error("ERROR - request has no body");
         throw new Error("request has no body");
       }
-      
+
       if (!request.body.data) {
         console.error("ERROR - request has no data");
         throw new Error(" request has no data");
@@ -81,7 +81,7 @@ export const addChatMessage = functions.https.onRequest(
         let ref: DocumentReference;
         ref = await fs.collection("chatResponsesPending").add(mresp);
         console.log(`chat responses pending added, path: ${ref.path}`);
-        mresp.documentPath = ref.path
+        mresp.documentPath = ref.path;
         await ref.set(mresp);
       } catch (e) {
         console.error(e);
@@ -89,6 +89,7 @@ export const addChatMessage = functions.https.onRequest(
       }
     }
     async function sendMessageToTopic(mdata) {
+  
       try {
         const payload = {
           data: {
@@ -100,21 +101,25 @@ export const addChatMessage = functions.https.onRequest(
             body: mdata.message
           }
         };
-
-        const topic = constants.Constants.TOPIC_CHAT_MESSAGES_ADDED;
-        await admin
-          .messaging()
-          .sendToTopic(topic, payload)
-          .catch(e => {
-            console.log(e);
-            throw e;
-          });
-        console.log(
-          `chatMessageAdded: sent to topic: ${topic} data: ${JSON.stringify(
-            mdata
-          )}`
-        );
-        admin.messaging().sendToTopic(topic,payload)
+        if (mdata.responseFCMToken) {
+          console.log(`sending chat message to support device: ${mdata.responseFCMToken}`);
+          await admin.messaging().sendToDevice(mdata.responseFCMToken, payload);
+        } else {
+          const topic = constants.Constants.TOPIC_CHAT_MESSAGES_ADDED;
+          await admin
+            .messaging()
+            .sendToTopic(topic, payload)
+            .catch(e => {
+              console.log(e);
+              throw e;
+            });
+          console.log(
+            `chatMessageAdded: sent to support topic: ${topic} data: ${JSON.stringify(
+              mdata
+            )}`
+          );
+          admin.messaging().sendToTopic(topic, payload);
+        }
       } catch (e) {
         console.error(e);
         handleError(e);

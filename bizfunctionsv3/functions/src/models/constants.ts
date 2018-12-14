@@ -20,6 +20,7 @@ export class Constants {
          static TOPIC_OFFERS = "offers";
          static TOPIC_AUTO_TRADES = "autoTrades";
          static TOPIC_CHAT_MESSAGES_ADDED = "chatMessagesAdded";
+         static  TOPIC_CHAT_RESPONSES_ADDED = "chatResponsesAdded";
          static TOPIC_GENERAL_MESSAGE = "messages";
          static TOPIC_INVOICE_BIDS = "invoiceBids";
          static TOPIC_INVESTOR_INVOICE_SETTLEMENTS = "investorInvoiceSettlements";

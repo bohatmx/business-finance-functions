@@ -6,6 +6,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentSnapshot } from "firebase-functions/lib/providers/firestore";
 import { DocumentReference } from "@google-cloud/firestore";
+import * as constants from "../models/constants";
 
 export const addChatResponse = functions.https.onRequest(
   async (request, response) => {
@@ -28,7 +29,7 @@ export const addChatResponse = functions.https.onRequest(
     console.log(`##### Incoming data ${JSON.stringify(request.body.data)}`);
 
     const data = request.body.data;
-    const fs = admin.firestore()
+    const fs = admin.firestore();
 
     if (validate()) {
       data.date = new Date().toISOString();
@@ -50,17 +51,28 @@ export const addChatResponse = functions.https.onRequest(
     }
     async function writeToFirestore(mdata) {
       mdata.date = new Date().toISOString();
-
+      if (!mdata.chatMessage.path) {
+        throw new Error(`chatMessage.path is null`);
+      }
+      mdata.documentPath = "will be updated";
       try {
-        let docSnapshot: DocumentSnapshot
+        let docSnapshot: DocumentSnapshot;
         docSnapshot = await fs.doc(mdata.chatMessage.path).get();
         if (!docSnapshot.exists) {
-          throw new Error('chat message to respond to has not been found')
+          throw new Error("chat message to respond to has not been found");
         }
         let ref: DocumentReference;
-        ref = await docSnapshot.ref.collection('responses').add(mdata);
-        console.log(`response written to chat message: ${ref.path}`)
-       
+        ref = await docSnapshot.ref.collection("responses").add(mdata);
+        mdata.documentPath = ref.path;
+        await ref.set(mdata);
+
+        const chatMsg = docSnapshot.data();
+        chatMsg.hasResponse = true;
+        chatMsg.lastResponseDate = new Date().toISOString();
+        await docSnapshot.ref.set(chatMsg);
+
+        console.log(`response written to chat message: ${ref.path}`);
+        await sendMessageToTopic(mdata);
         response.status(200).send(mdata);
         return null;
       } catch (e) {
@@ -68,7 +80,44 @@ export const addChatResponse = functions.https.onRequest(
         handleError(e);
       }
     }
-
+    async function sendMessageToTopic(mdata) {
+      try {
+        const payload = {
+          data: { json: JSON.stringify(mdata), messageType: "CHAT_RESPONSE" },
+          notification: {
+            title: "BFN Chat Response",
+            body: mdata.responseMessage
+          }
+        };
+        if (mdata.chatMessage.fcmToken) {
+          console.log(
+            `sending response to device: ${mdata.chatMessage.fcmToken}`
+          );
+          await admin
+            .messaging()
+            .sendToDevice(mdata.chatMessage.fcmToken, payload);
+        } else {
+          const topic = constants.Constants.TOPIC_CHAT_RESPONSES_ADDED;
+          await admin
+            .messaging()
+            .sendToTopic(topic, payload)
+            .catch(e => {
+              console.log(e);
+              throw e;
+            });
+          console.log(
+            `chatResponseAdded: sent to topic: ${topic} data: ${JSON.stringify(
+              mdata
+            )}`
+          );
+        }
+        return null;
+      } catch (e) {
+        console.error(e);
+        handleError(e);
+      }
+      return null;
+    }
     function handleError(message) {
       throw new Error(message);
     }

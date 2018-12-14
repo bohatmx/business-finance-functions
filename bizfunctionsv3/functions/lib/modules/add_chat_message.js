@@ -91,16 +91,22 @@ exports.addChatMessage = functions.https.onRequest(async (request, response) => 
                     body: mdata.message
                 }
             };
-            const topic = constants.Constants.TOPIC_CHAT_MESSAGES_ADDED;
-            await admin
-                .messaging()
-                .sendToTopic(topic, payload)
-                .catch(e => {
-                console.log(e);
-                throw e;
-            });
-            console.log(`chatMessageAdded: sent to topic: ${topic} data: ${JSON.stringify(mdata)}`);
-            admin.messaging().sendToTopic(topic, payload);
+            if (mdata.responseFCMToken) {
+                console.log(`sending chat message to support device: ${mdata.responseFCMToken}`);
+                await admin.messaging().sendToDevice(mdata.responseFCMToken, payload);
+            }
+            else {
+                const topic = constants.Constants.TOPIC_CHAT_MESSAGES_ADDED;
+                await admin
+                    .messaging()
+                    .sendToTopic(topic, payload)
+                    .catch(e => {
+                    console.log(e);
+                    throw e;
+                });
+                console.log(`chatMessageAdded: sent to support topic: ${topic} data: ${JSON.stringify(mdata)}`);
+                admin.messaging().sendToTopic(topic, payload);
+            }
         }
         catch (e) {
             console.error(e);

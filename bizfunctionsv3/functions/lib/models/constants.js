@@ -27,6 +27,7 @@ Constants.TOPIC_INVOICE_ACCEPTANCES = "invoiceAcceptances";
 Constants.TOPIC_OFFERS = "offers";
 Constants.TOPIC_AUTO_TRADES = "autoTrades";
 Constants.TOPIC_CHAT_MESSAGES_ADDED = "chatMessagesAdded";
+Constants.TOPIC_CHAT_RESPONSES_ADDED = "chatResponsesAdded";
 Constants.TOPIC_GENERAL_MESSAGE = "messages";
 Constants.TOPIC_INVOICE_BIDS = "invoiceBids";
 Constants.TOPIC_INVESTOR_INVOICE_SETTLEMENTS = "investorInvoiceSettlements";
