@@ -13,8 +13,8 @@ const cors = require("cors")({ origin: true });
 //curl --header "Content-Type: application/json"   --request POST   --data '{"debug": "true"}'   https://us-central1-business-finance-dev.cloudfunctions.net/executeAutoTrade
 exports.executeAutoTrades = functions
     .runWith({ memory: "512MB", timeoutSeconds: 540 })
-    .https.onRequest(async (req, res) => {
-    const debug = req.body.debug;
+    .https.onRequest(async (request, response) => {
+    const debug = request.body.debug;
     let orders = [];
     let profiles = [];
     let offers = [];
@@ -32,8 +32,9 @@ exports.executeAutoTrades = functions
     };
     const startKey = `start-${new Date().getTime()}`;
     const startTime = new Date().getTime();
+    const fs = admin.firestore();
     //enable CORS 
-    cors(req, res, async (request, response) => {
+    cors(request, response, async () => {
         console.log("######## wrapped everything in cors");
         if (!request.body) {
             console.log("ERROR - request has no body");
@@ -74,7 +75,7 @@ exports.executeAutoTrades = functions
         console.log(`######## Auto Trading Session completed; autoTradeStart updated. Done in 
             ${autoTradeStart.elapsedSeconds} seconds. We are HAPPY, Houston!!`);
         await sendMessageToHeartbeatTopic(`AutoTrade Session complete, elapsed: ${autoTradeStart.elapsedSeconds} seconds`);
-        return res.status(200).send(autoTradeStart);
+        return response.status(200).send(autoTradeStart);
     }
     async function writeBids() {
         for (const unit of units) {
@@ -91,8 +92,7 @@ exports.executeAutoTrades = functions
         console.log(`offer document ref: ${unit.offer.documentReference}`);
         try {
             //get existing invoice bids for this offer
-            const bidQuerySnap = await admin
-                .firestore()
+            const bidQuerySnap = await fs
                 .collection("invoiceOffers")
                 .doc(unit.offer.documentReference)
                 .collection("invoiceBids")
@@ -154,8 +154,7 @@ exports.executeAutoTrades = functions
         console.log("################### getData ######################");
         await sendMessageToHeartbeatTopic("Collecting auto trade base data");
         let qso;
-        qso = await admin
-            .firestore()
+        qso = await fs
             .collection("invoiceOffers")
             .where("isOpen", "==", true)
             .where("endTime", ">", new Date().toISOString())
@@ -199,8 +198,7 @@ exports.executeAutoTrades = functions
             console.log("### Open offers found: " + qso.docs.length);
         }
         let qs;
-        qs = await admin
-            .firestore()
+        qs = await fs
             .collection("autoTradeOrders")
             .where("isCancelled", "==", false)
             .get()
@@ -227,8 +225,7 @@ exports.executeAutoTrades = functions
         });
         shuffleOrders();
         let qsp;
-        qsp = await admin
-            .firestore()
+        qsp = await fs
             .collection("investorProfiles")
             .get()
             .catch(e => {
@@ -278,8 +275,7 @@ exports.executeAutoTrades = functions
         console.log(orders);
     }
     async function writeAutoTradeStart() {
-        await admin
-            .firestore()
+        await fs
             .collection("autoTradeStarts")
             .doc(startKey)
             .set(autoTradeStart)
@@ -298,8 +294,7 @@ exports.executeAutoTrades = functions
         });
         autoTradeStart.totalAmount = t;
         let mf;
-        mf = await admin
-            .firestore()
+        mf = await fs
             .collection("autoTradeStarts")
             .doc(startKey)
             .set(autoTradeStart)

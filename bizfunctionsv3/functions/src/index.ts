@@ -38,10 +38,14 @@ import * as PeachCancel from './modules/peach-cancel'
 import * as MakeInvestorInvoiceSettlement from './modules/make_investor_invoice_settlement'
 import * as DataExport from './modules/export-trigger'
 import * as OffersQuery from './modules/offers-query'
+import * as AddChatMessage from "./modules/add_chat_message";
+import * as AddChatResponse from "./modules/add_chat_response";
 
 admin.initializeApp();
 
-export const queryOffers = OffersQuery.queryOffers
+export const addChatMessage = AddChatMessage.addChatMessage;
+export const addChatResponse = AddChatResponse.addChatResponse;
+export const queryOffers = OffersQuery.queryOffers;
 export const exportData = DataExport.exportData
 
 export const peachCancel = PeachCancel.peachCancel
