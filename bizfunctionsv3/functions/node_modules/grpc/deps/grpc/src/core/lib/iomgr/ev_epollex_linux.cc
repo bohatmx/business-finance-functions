@@ -403,6 +403,10 @@ static void unref_by(grpc_fd* fd, int n) {
 static void fd_global_init(void) { gpr_mu_init(&fd_freelist_mu); }
 
 static void fd_global_shutdown(void) {
+  // TODO(guantaol): We don't have a reasonable explanation about this
+  // lock()/unlock() pattern. It can be a valid barrier if there is at most one
+  // pending lock() at this point. Otherwise, there is still a possibility of
+  // use-after-free race. Need to reason about the code and/or clean it up.
   gpr_mu_lock(&fd_freelist_mu);
   gpr_mu_unlock(&fd_freelist_mu);
   while (fd_freelist != nullptr) {
@@ -1600,6 +1604,8 @@ static void pollset_set_del_pollset_set(grpc_pollset_set* bag,
  * Event engine binding
  */
 
+static void shutdown_background_closure(void) {}
+
 static void shutdown_engine(void) {
   fd_global_shutdown();
   pollset_global_shutdown();
@@ -1608,6 +1614,7 @@ static void shutdown_engine(void) {
 static const grpc_event_engine_vtable vtable = {
     sizeof(grpc_pollset),
     true,
+    false,
 
     fd_create,
     fd_wrapped_fd,
@@ -1637,6 +1644,7 @@ static const grpc_event_engine_vtable vtable = {
     pollset_set_add_fd,
     pollset_set_del_fd,
 
+    shutdown_background_closure,
     shutdown_engine,
 };
 

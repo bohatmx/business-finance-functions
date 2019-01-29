@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import * as BFNConstants from "../models/constants";
+import * as constants from "../models/constants";
 import * as AxiosComms from "./axios-comms";
 import { CloseHelper } from "./close-helper";
 const uuid = require("uuid/v1");
@@ -8,9 +8,9 @@ export class InvoiceBidHelper {
     let url;
     const apiSuffix = "MakeInvoiceBid";
     if (debug) {
-      url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
+      url = constants.Constants.DEBUG_URL + apiSuffix;
     } else {
-      url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
+      url = constants.Constants.RELEASE_URL + apiSuffix;
     }
     const fs = admin.firestore();
     console.log(
@@ -121,12 +121,12 @@ export class InvoiceBidHelper {
     }
     async function sendMessageToTopic(mdata) {
       const topic =
-        BFNConstants.Constants.TOPIC_INVOICE_BIDS +
+        constants.Constants.TOPIC_INVOICE_BIDS +
         mdata.supplier.split("#")[1];
       const topic1 =
-        BFNConstants.Constants.TOPIC_INVOICE_BIDS +
+        constants.Constants.TOPIC_INVOICE_BIDS +
         mdata.investor.split("#")[1];
-      const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
+      const topic2 = constants.Constants.TOPIC_INVOICE_BIDS;
       const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
 
       const payload = {
