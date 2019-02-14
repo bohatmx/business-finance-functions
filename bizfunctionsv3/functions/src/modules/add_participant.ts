@@ -35,9 +35,9 @@ export const addParticipant = functions
       errRes.message = "request has no body";
       return response.status(400).send(errRes);
     }
-    if (!request.body.apiSuffix) {
-      console.log("ERROR - request needs an apiSuffix");
-      errRes.message = "request needs an apiSuffix";
+    if (!request.body.functionName) {
+      console.log("ERROR - request needs an functionName");
+      errRes.message = "request needs an functionName";
       return response.status(400).send(errRes);
     }
     try {
@@ -54,7 +54,7 @@ export const addParticipant = functions
     console.log(
       `##### Incoming collectionName: ${request.body.collectionName}`
     );
-    console.log(`##### Incoming apiSuffix: ${request.body.apiSuffix}`);
+    console.log(`##### Incoming functionName: ${request.body.functionName}`);
     console.log(`##### Incoming data: ${JSON.stringify(request.body.data)}`);
     if (request.body.user) {
       console.log(`##### Incoming user: ${JSON.stringify(request.body.user)}`);
@@ -62,23 +62,23 @@ export const addParticipant = functions
 
     let isError = false;
     const debug = request.body.debug;
-    const apiSuffix = request.body.apiSuffix;
+    const functionName = request.body.functionName;
     const data = request.body.data;
     const user = request.body.user;
     const sourceSeed = request.body.sourceSeed;
-    if (!user || !apiSuffix || !data) {
+    if (!user || !functionName || !data) {
       console.log("ERROR - user object not found");
-      handleError("ERROR - user or data or apiSuffix missing in request data");
+      handleError("ERROR - user or data or functionName missing in request data");
     }
     let collectionName;
-    if (apiSuffix === "Supplier") {
+    if (functionName === "addSupplier") {
       collectionName = "suppliers";
     }
-    if (apiSuffix === "Investor") {
+    if (functionName === "addInvestor") {
       collectionName = "investors";
     }
-    if (apiSuffix === "GovtEntity") {
-      collectionName = "govtEntities";
+    if (functionName === "addCustomer") {
+      collectionName = "customers";
     }
     const result = {
       participantPath: null,
@@ -99,15 +99,10 @@ export const addParticipant = functions
     return null;
 
     async function addToBFN() {
-      let url;
+      
       // Send a POST request to BFN
       try {
-        if (debug) {
-          url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-        } else {
-          url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-        }
-        const mresponse = await MyComms.AxiosComms.execute(url, data);
+        const mresponse = await MyComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
@@ -146,9 +141,9 @@ export const addParticipant = functions
       let url;
       try {
         if (debug) {
-          url = BFNConstants.Constants.DEBUG_URL + "User";
+          url = BFNConstants.Constants.DEBUG_BFN_URL + "User";
         } else {
-          url = BFNConstants.Constants.RELEASE_URL + "User";
+          url = BFNConstants.Constants.RELEASE_BFN_URL + "User";
         }
         user.uid = "n/a";
         console.log("####### --- writing user to BFN: ---> " + url);
@@ -219,13 +214,13 @@ export const addParticipant = functions
         name: request.body.data.name
       };
       const id = request.body.data.participantId;
-      if (apiSuffix === "GovtEntity") {
+      if (functionName === "GovtEntity") {
         wallet.govtEntity = `resource:com.oneconnect.biz.GovtEntity#${id}`;
       }
-      if (apiSuffix === "Supplier") {
+      if (functionName === "Supplier") {
         wallet.supplier = `resource:com.oneconnect.biz.Supplier#${id}`;
       }
-      if (apiSuffix === "Investor") {
+      if (functionName === "Investor") {
         wallet.investor = `resource:com.oneconnect.biz.Investor#${id}`;
       }
 
@@ -348,9 +343,9 @@ export const addParticipant = functions
       };
       try {
         if (debug) {
-          url = BFNConstants.Constants.DEBUG_URL + "Wallet";
+          url = BFNConstants.Constants.DEBUG_BFN_URL + "Wallet";
         } else {
-          url = BFNConstants.Constants.RELEASE_URL + "Wallet";
+          url = BFNConstants.Constants.RELEASE_BFN_URL + "Wallet";
         }
         const mresponse = await MyComms.AxiosComms.execute(url, bfnWallet);
         if (mresponse.status === 200) {
@@ -394,12 +389,12 @@ export const addParticipant = functions
       try {
         isError = true;
         const payload = {
-          name: apiSuffix,
+          name: functionName,
           result: result,
           message: message,
           data: request.body.data,
           user: request.body.user,
-          apiSuffix: request.body.apiSuffix,
+          functionName: request.body.functionName,
           date: new Date().toISOString()
         };
         console.log(payload);

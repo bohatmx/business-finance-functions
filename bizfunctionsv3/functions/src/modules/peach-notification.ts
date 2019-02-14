@@ -143,9 +143,9 @@ export const peachNotify = functions.https.onRequest(
     async function writeSettlementToBFN(data, documentId) {
       let url;
       if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
+        url = BFNConstants.Constants.DEBUG_BFN_URL + apiSuffix;
       } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
+        url = BFNConstants.Constants.RELEASE_BFN_URL + apiSuffix;
       }
 
       try {

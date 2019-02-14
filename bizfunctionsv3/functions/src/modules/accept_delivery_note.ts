@@ -31,8 +31,9 @@ export const acceptDeliveryNote = functions.https.onRequest(
 
     const debug = request.body.debug;
     const data = request.body.data;
-const fs = admin.firestore()
-    const apiSuffix = "AcceptDelivery";
+    const fs = admin.firestore()
+
+    const functionName = "acceptDeliveryNote";
 
     if (validate() === true) {
       await writeToBFN();
@@ -53,19 +54,9 @@ const fs = admin.firestore()
     }
 
     async function writeToBFN() {
-      let url;
-      if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-      } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-      }
-
-      if (!data.acceptanceId) {
-        data["acceptanceId"] = uuid();
-      }
-      data.date = new Date().toISOString();
+     
       try {
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, JSON.stringify(data));
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
@@ -89,7 +80,7 @@ const fs = admin.firestore()
             .collection("govtEntities")
             .where("participantId", "==", key)
             .get()
-            .catch(function(error) {
+            .catch(function (error) {
               console.log(error);
               handleError(error);
               return null;
@@ -107,7 +98,7 @@ const fs = admin.firestore()
             .doc(mdocID)
             .collection("deliveryAcceptances")
             .add(mdata)
-            .catch(function(error) {
+            .catch(function (error) {
               console.log(error);
               handleError(error);
               return null;
@@ -125,7 +116,7 @@ const fs = admin.firestore()
             .collection("suppliers")
             .where("participantId", "==", key)
             .get()
-            .catch(function(error) {
+            .catch(function (error) {
               console.log(error);
               handleError(error);
               return null;
@@ -143,7 +134,7 @@ const fs = admin.firestore()
             .doc(docID)
             .collection("deliveryAcceptances")
             .add(mdata)
-            .catch(function(error) {
+            .catch(function (error) {
               console.log(error);
               handleError(error);
               return null;
@@ -173,11 +164,11 @@ const fs = admin.firestore()
 
       console.log(
         "sending Delivery Acceptance data to topics: " +
-          topic +
-          " " +
-          topic2 +
-          " " +
-          topic3
+        topic +
+        " " +
+        topic2 +
+        " " +
+        topic3
       );
       const payload = {
         data: {

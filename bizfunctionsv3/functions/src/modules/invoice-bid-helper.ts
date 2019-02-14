@@ -5,13 +5,9 @@ import { CloseHelper } from "./close-helper";
 const uuid = require("uuid/v1");
 export class InvoiceBidHelper {
   static async writeInvoiceBidToBFNandFirestore(data, debug) {
-    let url;
-    const apiSuffix = "MakeInvoiceBid";
-    if (debug) {
-      url = constants.Constants.DEBUG_URL + apiSuffix;
-    } else {
-      url = constants.Constants.RELEASE_URL + apiSuffix;
-    }
+    
+    const functionName = "makeInvoiceBid";
+    
     const fs = admin.firestore();
     console.log(
       `InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`
@@ -45,7 +41,7 @@ export class InvoiceBidHelper {
       console.log(
         `InvoiceBidHelper: data direct to BFN: ${JSON.stringify(data)}`
       );
-      const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+      const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
       if (mresponse.status === 200) {
         return writeToFirestore(mresponse.data);
       } else {

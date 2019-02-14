@@ -32,7 +32,7 @@ export const registerDeliveryNote = functions.https.onRequest(
     const debug = request.body.debug;
     const data = request.body.data;
 
-    const apiSuffix = "RegisterDeliveryNote";
+    const functionName = "addDeliveryNote";
 
     if (validate() === true) {
       await writeToBFN();
@@ -55,18 +55,10 @@ export const registerDeliveryNote = functions.https.onRequest(
       return true;
     }
     async function writeToBFN() {
-      let url;
-      if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-      } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-      }
-      if (!data.deliveryNoteId) {
-        data["deliveryNoteId"] = uuid();
-      }
+     
       try {
         data.date = new Date().toISOString();
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {

@@ -92,7 +92,7 @@ exports.addChatMessage = functions.https.onRequest(async (request, response) => 
                 }
             };
             if (mdata.responseFCMToken) {
-                console.log(`sending chat message to support device: ${mdata.responseFCMToken}`);
+                console.log(`sending chat message direct to support device: ${mdata.responseFCMToken}`);
                 await admin.messaging().sendToDevice(mdata.responseFCMToken, payload);
             }
             else {

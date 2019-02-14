@@ -34,7 +34,7 @@ export const updateOffer = functions.https.onRequest(
     const debug = request.body.debug;
     const data = request.body.data;
 
-    const apiSuffix = "UpdateOffer";
+    const functionName = "updateOffer";
 
     if (validate()) {
       await writeToBFN();
@@ -58,18 +58,12 @@ export const updateOffer = functions.https.onRequest(
     }
 
     async function writeToBFN() {
-      let url;
-      if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-      } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-      }
-    
+     
       try {
         data.date = new Date().toISOString()
         data.intDate = null
         data.itemNumber = null
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           return updateFirestore(mresponse.data);
         } else {

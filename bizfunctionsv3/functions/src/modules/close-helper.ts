@@ -8,9 +8,9 @@ export class CloseHelper {
     const map = new Map();
     map["offerId"] = offerId;
     if (debug) {
-      url = BFNConstants.Constants.DEBUG_URL + "CloseOffer";
+      url = BFNConstants.Constants.DEBUG_BFN_URL + "CloseOffer";
     } else {
-      url = BFNConstants.Constants.RELEASE_URL + "CloseOffer";
+      url = BFNConstants.Constants.RELEASE_BFN_URL + "CloseOffer";
     }
 
     try {

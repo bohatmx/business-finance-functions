@@ -32,7 +32,7 @@ export const makeOffer = functions.https.onRequest(
     const debug = request.body.debug;
     const data = request.body.data;
     const fs = admin.firestore()
-    const apiSuffix = "MakeOffer";
+    const functionName = "makeOffer";
 
     if (validate()) {
       await writeToBFN();
@@ -56,18 +56,10 @@ export const makeOffer = functions.https.onRequest(
     }
 
     async function writeToBFN() {
-      let url;
-      if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-      } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-      }
-      if (!data.offerId) {
-        data["offerId"] = uuid();
-      }
+    
       try {
         data.date = new Date().toISOString();
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {

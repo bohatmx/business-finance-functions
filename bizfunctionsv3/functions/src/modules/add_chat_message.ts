@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as constants from "../models/constants";
-import { DocumentReference } from "@google-cloud/firestore";
 
 export const addChatMessage = functions.https.onRequest(
   async (request, response) => {
@@ -55,7 +54,7 @@ export const addChatMessage = functions.https.onRequest(
       mdata.date = new Date().toISOString();
 
       try {
-        let ref1: DocumentReference;
+        let ref1;
         ref1 = await fs
           .collection("chatMessages")
           .doc(mdata.userId)
@@ -78,7 +77,7 @@ export const addChatMessage = functions.https.onRequest(
     }
     async function writeResponsePending(mresp) {
       try {
-        let ref: DocumentReference;
+        let ref;
         ref = await fs.collection("chatResponsesPending").add(mresp);
         console.log(`chat responses pending added, path: ${ref.path}`);
         mresp.documentPath = ref.path;

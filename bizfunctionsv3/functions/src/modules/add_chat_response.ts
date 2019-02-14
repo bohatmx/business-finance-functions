@@ -5,7 +5,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentSnapshot } from "firebase-functions/lib/providers/firestore";
-import { DocumentReference } from "@google-cloud/firestore";
 import * as constants from "../models/constants";
 
 export const addChatResponse = functions.https.onRequest(
@@ -61,7 +60,7 @@ export const addChatResponse = functions.https.onRequest(
         if (!docSnapshot.exists) {
           throw new Error("chat message to respond to has not been found");
         }
-        let ref: DocumentReference;
+        let ref;
         ref = await docSnapshot.ref.collection("responses").add(mdata);
         mdata.documentPath = ref.path;
         await ref.set(mdata);

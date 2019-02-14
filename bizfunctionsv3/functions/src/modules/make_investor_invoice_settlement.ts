@@ -27,7 +27,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
     const debug = request.body.debug;
     const data = request.body.data;
 
-    const apiSuffix = "MakeInvestorInvoiceSettlement";
+    const functionName = "makeInvestorInvoiceSettlement";
     const fs = admin.firestore();
 
     if (validate() === true) {
@@ -47,20 +47,9 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
       return true;
     }
     async function writeSettlementToBFN() {
-      let url;
-      if (debug) {
-        url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-      } else {
-        url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-      }
-
-      if (!data.invoiceSettlementId) {
-        data["invoiceSettlementId"] = uuid();
-      }
 
       try {
-        data.date = new Date().toISOString();
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           mresponse.data.intDate = new Date().getTime();
           return writeSettlementToFirestore(mresponse.data);
@@ -131,7 +120,7 @@ export const makeInvestorInvoiceSettlement = functions.https.onRequest(
       console.log("--- ERROR !!! --- sending error payload: msg:" + message);
       try {
         const payload = {
-          name: apiSuffix,
+          name: functionName,
           message: message,
           data: request.body.data,
           date: new Date().toISOString()

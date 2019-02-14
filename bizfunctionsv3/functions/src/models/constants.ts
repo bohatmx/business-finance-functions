@@ -1,7 +1,12 @@
 export class Constants {
-         static DEBUG_URL = "https://bfnrestv3.eu-gb.mybluemix.net/api/"; //FIBRE
-         static RELEASE_URL = "https://bfnrestv3.eu-gb.mybluemix.net/api/"; //CLOUD
-         static NameSpace = "resource:com.oneconnect.biz.";
+        //  static DEBUG_URL = "https://bfnrestv3.eu-gb.mybluemix.net/api/"; //FIBRE
+        //  static RELEASE_URL = "https://bfnrestv3.eu-gb.mybluemix.net/api/"; //CLOUD
+         static DEBUG_BFN_URL = "https://bfnwebapi1.eu-gb.mybluemix.net/"; //FIBRE
+         static RELEASE_BFN_URL = "https://bfnwebapi1.eu-gb.mybluemix.net/"; //CLOUD
+         static NameSpace = "com.oneconnect.biz.";
+         static DEFAULT_CHAINCODE = "bfn-chaincode1";
+         static DEFAULT_CHANNEL = "defaultchannel";
+         static DEFAULT_USERNAME = "admin@org1"
 
          static DEBUG_FUNCTIONS_URL = "https://us-central1-business-finance-dev.cloudfunctions.net/"; //FIBRE
          static RELEASE_FUNCTIONS_URL = "https://us-central1-business-finance-prod.cloudfunctions.net/"; //CLOUD
@@ -34,9 +39,9 @@ export class Constants {
          static PEACH_ENTITYID_RECURRING = "8ac7a4ca66f2eab3016706c9f4c113f0";
 
          static getDebugURL() {
-           return this.DEBUG_URL;
+           return this.DEBUG_BFN_URL;
          }
          static getReleaseURL() {
-           return this.RELEASE_URL;
+           return this.RELEASE_BFN_URL;
          }
        }

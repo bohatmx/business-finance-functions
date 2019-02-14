@@ -42,11 +42,26 @@ const DataExport = require("./modules/export-trigger");
 const OffersQuery = require("./modules/offers-query");
 const AddChatMessage = require("./modules/add_chat_message");
 const AddChatResponse = require("./modules/add_chat_response");
+const RegisterAdmin = require("./modules/register-admin");
+const RegisterUser = require("./modules/register-user");
+// Initialize Firebase
+// const config = {
+//     apiKey: "AIzaSyBtrFqY-GCRjFlpFNOJXdRgfWjoUf0icsI",
+//     authDomain: "business-finance-dev.firebaseapp.com",
+//     databaseURL: "https://business-finance-dev.firebaseio.com",
+//     projectId: "business-finance-dev",
+//     storageBucket: "business-finance-dev.appspot.com",
+//     messagingSenderId: "970597890524"
+//   };
+// admin.initializeApp(config);
+//const serviceAccount = require("path/to/serviceAccountKey.json");
 admin.initializeApp();
 exports.addChatMessage = AddChatMessage.addChatMessage;
 exports.addChatResponse = AddChatResponse.addChatResponse;
 exports.queryOffers = OffersQuery.queryOffers;
 exports.exportData = DataExport.exportData;
+exports.registerAdmin = RegisterAdmin.registerAdmin;
+exports.registerUser = RegisterUser.registerUser;
 exports.peachCancel = PeachCancel.peachCancel;
 exports.peachError = PeachError.peachError;
 exports.peachSuccess = PeachSuccess.peachSuccess;

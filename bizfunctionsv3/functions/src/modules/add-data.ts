@@ -27,20 +27,20 @@ export const addData = functions
       console.log("ERROR - request has no body");
       return response.status(400).send("request has no body");
     }
-    if (!request.body.apiSuffix) {
-      console.log("ERROR - request needs an apiSuffix");
-      return response.status(400).send("request has no apiSuffix");
+    if (!request.body.functionName) {
+      console.log("ERROR - request needs an functionName");
+      return response.status(400).send("request has no functionName");
     }
     console.log(`##### Incoming debug: ${request.body.debug}`);
     console.log(
       `##### Incoming collectionName: ${request.body.collectionName}`
     );
-    console.log(`##### Incoming apiSuffix: ${request.body.apiSuffix}`);
+    console.log(`##### Incoming functionName: ${request.body.functionName}`);
     console.log(`##### Incoming data: ${JSON.stringify(request.body.data)}`);
 
     const debug = request.body.debug;
     const collectionName = request.body.collectionName;
-    const apiSuffix = request.body.apiSuffix;
+    const functionName = request.body.functionName;
     const data = request.body.data;
 
     const ref = await writeToBFN();
@@ -58,17 +58,10 @@ export const addData = functions
     return null;
     //add customer to bfn blockchain
     async function writeToBFN() {
-      console.log("####### --- entering writeToBFN() .....");
-      let url;
-      console.log("####### --- writing to BFN: ---> " + url);
       // Send a POST request to BFN
       try {
-        if (debug) {
-          url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
-        } else {
-          url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
-        }
-        const mresponse = await AxiosComms.AxiosComms.execute(url, data);
+        
+        const mresponse = await AxiosComms.AxiosComms.executeTransaction(functionName, data);
         if (mresponse.status === 200) {
           return writeToFirestore(mresponse.data);
         } else {
@@ -121,7 +114,7 @@ export const addData = functions
         const payload = {
           message: message,
           data: request.body.data,
-          apiSuffix: request.body.apiSuffix,
+          functionName: request.body.functionName,
           date: new Date().toISOString()
         };
         console.log(payload);

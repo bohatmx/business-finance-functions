@@ -26,12 +26,12 @@ export async function createWallet(sourceSeed, id, type, debug) {
     success: false,
     dateRegistered: dateRegistered,
     secret: secret,
-    govtEntity: null,
+    customer: null,
     supplier: null,
     investor: null
   };
-  if (type === "GovtEntity") {
-    wallet.govtEntity = "resource:com.oneconnect.biz.GovtEntity#" + id;
+  if (type === "Customer") {
+    wallet.customer = "oneconnect.biz.Customer#" + id;
   }
   if (type === "Supplier") {
     wallet.supplier = "resource:com.oneconnect.biz.Supplier#" + id;

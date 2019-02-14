@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const admin = require("firebase-admin");
-const BFNConstants = require("../models/constants");
+const constants = require("../models/constants");
 const AxiosComms = require("./axios-comms");
 const close_helper_1 = require("./close-helper");
 const uuid = require("uuid/v1");
@@ -10,10 +10,10 @@ class InvoiceBidHelper {
         let url;
         const apiSuffix = "MakeInvoiceBid";
         if (debug) {
-            url = BFNConstants.Constants.DEBUG_URL + apiSuffix;
+            url = constants.Constants.DEBUG_URL + apiSuffix;
         }
         else {
-            url = BFNConstants.Constants.RELEASE_URL + apiSuffix;
+            url = constants.Constants.RELEASE_URL + apiSuffix;
         }
         const fs = admin.firestore();
         console.log(`InvoiceBidHelper: data before being processed: ${JSON.stringify(data)}`);
@@ -103,11 +103,11 @@ class InvoiceBidHelper {
             }
         }
         async function sendMessageToTopic(mdata) {
-            const topic = BFNConstants.Constants.TOPIC_INVOICE_BIDS +
+            const topic = constants.Constants.TOPIC_INVOICE_BIDS +
                 mdata.supplier.split("#")[1];
-            const topic1 = BFNConstants.Constants.TOPIC_INVOICE_BIDS +
+            const topic1 = constants.Constants.TOPIC_INVOICE_BIDS +
                 mdata.investor.split("#")[1];
-            const topic2 = BFNConstants.Constants.TOPIC_INVOICE_BIDS;
+            const topic2 = constants.Constants.TOPIC_INVOICE_BIDS;
             const mCondition = `'${topic}' in topics || '${topic2}' in topics || '${topic1}' in topics`;
             const payload = {
                 data: {
